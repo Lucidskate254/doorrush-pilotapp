@@ -1,13 +1,13 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import AuthLayout from '@/components/layout/AuthLayout';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/integrations/supabase/client';
 
 // Eldoret-based towns
 const TOWNS = [
@@ -34,6 +34,20 @@ const AgentRegistration = () => {
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
   const [profilePreview, setProfilePreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const checkAuthentication = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        navigate('/signin');
+        return;
+      }
+      setUserId(data.session.user.id);
+    };
+
+    checkAuthentication();
+  }, [navigate]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -52,21 +66,55 @@ const AgentRegistration = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!fullName || !phoneNumber || !nationalId || !location || !profilePicture) {
+    if (!fullName || !phoneNumber || !nationalId || !location || !profilePicture || !userId) {
       toast.error('Please fill in all fields');
       return;
     }
     
     setIsLoading(true);
     
-    // Simulating an API call
-    setTimeout(() => {
-      // In a real implementation, this would upload to Supabase storage
-      // and save data to the Agents table
+    try {
+      // Upload profile picture
+      const fileExt = profilePicture.name.split('.').pop();
+      const filePath = `${userId}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('agent_profiles')
+        .upload(filePath, profilePicture);
+        
+      if (uploadError) {
+        throw uploadError;
+      }
+      
+      // Get public URL for the uploaded image
+      const { data: urlData } = supabase.storage
+        .from('agent_profiles')
+        .getPublicUrl(filePath);
+        
+      // Insert agent data
+      const { error: insertError } = await supabase
+        .from('agents')
+        .insert({
+          id: userId,
+          full_name: fullName,
+          phone_number: phoneNumber,
+          national_id: nationalId,
+          location,
+          profile_picture: urlData.publicUrl
+        });
+        
+      if (insertError) {
+        throw insertError;
+      }
+      
       toast.success('Registration successful');
       navigate('/dashboard');
+    } catch (error: any) {
+      console.error('Error registering agent:', error);
+      toast.error(error.message || 'An error occurred during registration');
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   return (

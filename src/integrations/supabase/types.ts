@@ -9,7 +9,168 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      agents: {
+        Row: {
+          agent_code: string
+          created_at: string
+          earnings: number | null
+          full_name: string
+          id: string
+          location: string
+          national_id: string
+          online_status: boolean | null
+          phone_number: string
+          profile_picture: string | null
+        }
+        Insert: {
+          agent_code: string
+          created_at?: string
+          earnings?: number | null
+          full_name: string
+          id: string
+          location: string
+          national_id: string
+          online_status?: boolean | null
+          phone_number: string
+          profile_picture?: string | null
+        }
+        Update: {
+          agent_code?: string
+          created_at?: string
+          earnings?: number | null
+          full_name?: string
+          id?: string
+          location?: string
+          national_id?: string
+          online_status?: boolean | null
+          phone_number?: string
+          profile_picture?: string | null
+        }
+        Relationships: []
+      }
+      orders: {
+        Row: {
+          agent_id: string | null
+          amount: number | null
+          created_at: string
+          customer_contact: string
+          customer_id: string
+          customer_name: string
+          delivery_address: string
+          delivery_fee: number | null
+          description: string
+          id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id?: string | null
+          amount?: number | null
+          created_at?: string
+          customer_contact: string
+          customer_id: string
+          customer_name: string
+          delivery_address: string
+          delivery_fee?: number | null
+          description: string
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string | null
+          amount?: number | null
+          created_at?: string
+          customer_contact?: string
+          customer_id?: string
+          customer_name?: string
+          delivery_address?: string
+          delivery_fee?: number | null
+          description?: string
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tips: {
+        Row: {
+          agent_id: string
+          amount: number
+          created_at: string
+          customer_id: string | null
+          id: string
+        }
+        Insert: {
+          agent_id: string
+          amount: number
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+        }
+        Update: {
+          agent_id?: string
+          amount?: number
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tips_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      withdrawals: {
+        Row: {
+          agent_id: string
+          amount: number
+          created_at: string
+          id: string
+          phone_number: string
+          processed_at: string | null
+          status: string
+        }
+        Insert: {
+          agent_id: string
+          amount: number
+          created_at?: string
+          id?: string
+          phone_number: string
+          processed_at?: string | null
+          status?: string
+        }
+        Update: {
+          agent_id?: string
+          amount?: number
+          created_at?: string
+          id?: string
+          phone_number?: string
+          processed_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "withdrawals_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

@@ -1,13 +1,13 @@
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import AuthLayout from '@/components/layout/AuthLayout';
+import { supabase } from '@/integrations/supabase/client';
 
 const SignUp = () => {
   const navigate = useNavigate();
@@ -32,13 +32,25 @@ const SignUp = () => {
     
     setIsLoading(true);
     
-    // Simulating an API call
-    setTimeout(() => {
-      // In a real implementation, this would be replaced with Supabase authentication
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
       toast.success('Account created successfully');
       navigate('/agent-registration');
+    } catch (error) {
+      console.error('Error signing up:', error);
+      toast.error('An error occurred during sign up');
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
