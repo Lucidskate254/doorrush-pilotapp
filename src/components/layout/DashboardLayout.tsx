@@ -1,9 +1,11 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from "@/lib/utils";
 import { User, Home, LogOut, Settings } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface NavItemProps {
   href: string;
@@ -35,6 +37,7 @@ interface DashboardLayoutProps {
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   
   const navigation = [
     { href: "/dashboard", label: "Dashboard", icon: <Home size={18} /> },
@@ -42,9 +45,18 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     { href: "/settings", label: "Settings", icon: <Settings size={18} /> },
   ];
 
-  const handleLogout = () => {
-    // Will implement logout functionality later
-    console.log("Logging out...");
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        throw error;
+      }
+      toast.success("Logged out successfully");
+      navigate('/signin');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error("Failed to log out");
+    }
   };
 
   return (

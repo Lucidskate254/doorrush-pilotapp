@@ -7,23 +7,57 @@ import { Label } from '@/components/ui/label';
 import { DollarSign, MapPin, Package, User } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { toast } from 'sonner';
+import { useAuthCheck } from '@/hooks/useAuthCheck';
+import { supabase } from '@/integrations/supabase/client';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const Dashboard = () => {
+  const { agentData, isLoading } = useAuthCheck();
   const [isOnline, setIsOnline] = useState(false);
   
-  // Mock data - in a real app would come from API/Supabase
-  const agentData = {
-    name: "John Doe",
-    earnings: 2500.75,
-    location: "Eldoret CBD",
-    agentCode: "AG-1234567",
-    completed: 128,
+  const handleOnlineStatusChange = async (checked: boolean) => {
+    setIsOnline(checked);
+    
+    if (agentData) {
+      // Update agent's online status in the database
+      const { error } = await supabase
+        .from('agents')
+        .update({ online_status: checked })
+        .eq('id', agentData.id);
+        
+      if (error) {
+        console.error('Error updating online status:', error);
+        toast.error('Failed to update status');
+        setIsOnline(!checked); // Revert the UI state
+      } else {
+        toast.success(`You are now ${checked ? 'online' : 'offline'}`);
+      }
+    }
   };
   
-  const handleOnlineStatusChange = (checked: boolean) => {
-    setIsOnline(checked);
-    toast.success(`You are now ${checked ? 'online' : 'offline'}`);
-  };
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="space-y-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <Skeleton className="h-8 w-40 mb-2" />
+              <Skeleton className="h-4 w-60" />
+            </div>
+            <Skeleton className="w-full md:w-32 h-12" />
+          </div>
+          
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-32" />
+            ))}
+          </div>
+          
+          <Skeleton className="h-64" />
+        </div>
+      </DashboardLayout>
+    );
+  }
   
   return (
     <DashboardLayout>
@@ -32,7 +66,7 @@ const Dashboard = () => {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
             <p className="text-muted-foreground">
-              Welcome back, {agentData.name}
+              Welcome back, {agentData?.full_name || 'Agent'}
             </p>
           </div>
           
@@ -62,7 +96,7 @@ const Dashboard = () => {
               <CardHeader className="pb-2">
                 <CardDescription>Total Earnings</CardDescription>
                 <CardTitle className="text-2xl flex items-baseline gap-1">
-                  KES {agentData.earnings.toLocaleString()}
+                  KES {agentData?.earnings ? agentData.earnings.toLocaleString() : '0.00'}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -82,7 +116,7 @@ const Dashboard = () => {
             <Card className="overflow-hidden border border-border/50">
               <CardHeader className="pb-2">
                 <CardDescription>Agent Code</CardDescription>
-                <CardTitle className="text-2xl">{agentData.agentCode}</CardTitle>
+                <CardTitle className="text-2xl">{agentData?.agent_code || 'N/A'}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-xs text-muted-foreground">
@@ -101,7 +135,7 @@ const Dashboard = () => {
             <Card className="overflow-hidden border border-border/50">
               <CardHeader className="pb-2">
                 <CardDescription>Current Location</CardDescription>
-                <CardTitle className="text-2xl">{agentData.location}</CardTitle>
+                <CardTitle className="text-2xl">{agentData?.location || 'Not set'}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-xs text-muted-foreground">
@@ -120,7 +154,11 @@ const Dashboard = () => {
             <Card className="overflow-hidden border border-border/50">
               <CardHeader className="pb-2">
                 <CardDescription>Completed Deliveries</CardDescription>
-                <CardTitle className="text-2xl">{agentData.completed}</CardTitle>
+                <CardTitle className="text-2xl">
+                  {/* This would normally come from a count of completed orders */}
+                  {/* For now, showing 0 for new agents */}
+                  0
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-xs text-muted-foreground">
