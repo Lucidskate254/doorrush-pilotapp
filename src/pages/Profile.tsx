@@ -1,16 +1,14 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuthCheck } from '@/hooks/useAuthCheck';
-import { supabase } from '@/integrations/supabase/client';
+import ProfileAvatar from '@/components/profile/ProfileAvatar';
+import ProfileFormFields from '@/components/profile/ProfileFormFields';
+import ProfileActions from '@/components/profile/ProfileActions';
+import { ProfileFormData, initializeFormData, updateProfileData } from '@/utils/profileUtils';
 
 // Eldoret-based towns
 const TOWNS = [
@@ -31,7 +29,7 @@ const TOWNS = [
 const Profile = () => {
   const { agentData, isLoading } = useAuthCheck();
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ProfileFormData>({
     fullName: '',
     phoneNumber: '',
     nationalId: '',
@@ -45,22 +43,9 @@ const Profile = () => {
   // Initialize form data when agent data is loaded
   React.useEffect(() => {
     if (agentData) {
-      setFormData({
-        fullName: agentData.full_name,
-        phoneNumber: agentData.phone_number,
-        nationalId: maskNationalId(agentData.national_id),
-        location: agentData.location,
-        agentCode: agentData.agent_code,
-        profilePicture: agentData.profile_picture || '',
-      });
+      setFormData(initializeFormData(agentData));
     }
   }, [agentData]);
-
-  // Mask National ID (show only last 3 digits)
-  const maskNationalId = (id: string) => {
-    if (!id) return '';
-    return id.length > 3 ? `******${id.slice(-3)}` : id;
-  };
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -85,6 +70,15 @@ const Profile = () => {
     }
   };
   
+  const handleCancel = () => {
+    setIsEditing(false);
+    if (agentData) {
+      setFormData(initializeFormData(agentData));
+    }
+    setProfilePreview(null);
+    setProfilePicture(null);
+  };
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -93,58 +87,16 @@ const Profile = () => {
       return;
     }
 
-    try {
-      let profilePictureUrl = agentData.profile_picture;
-
-      // If new profile picture uploaded, store it in Supabase storage
-      if (profilePicture) {
-        const fileExt = profilePicture.name.split('.').pop();
-        const filePath = `${agentData.id}/${Date.now()}.${fileExt}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('agent_profiles')
-          .upload(filePath, profilePicture);
-          
-        if (uploadError) {
-          throw uploadError;
-        }
-        
-        const { data: urlData } = supabase.storage
-          .from('agent_profiles')
-          .getPublicUrl(filePath);
-          
-        profilePictureUrl = urlData.publicUrl;
-      }
-      
-      // Update agent info in Supabase
-      const { error } = await supabase
-        .from('agents')
-        .update({
-          full_name: formData.fullName,
-          phone_number: formData.phoneNumber,
-          location: formData.location,
-          profile_picture: profilePictureUrl,
-        })
-        .eq('id', agentData.id);
-        
-      if (error) {
-        throw error;
-      }
-      
-      toast.success("Profile updated successfully");
+    const success = await updateProfileData(
+      agentData.id,
+      formData,
+      profilePicture,
+      agentData
+    );
+    
+    if (success) {
       setIsEditing(false);
-    } catch (error: any) {
-      console.error('Error updating profile:', error);
-      toast.error(error.message || 'Failed to update profile');
     }
-  };
-  
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(part => part.charAt(0))
-      .join('')
-      .toUpperCase();
   };
 
   if (isLoading) {
@@ -186,145 +138,31 @@ const Profile = () => {
           <CardContent>
             <form onSubmit={handleSubmit} id="profile-form">
               <div className="grid gap-6">
-                <div className="flex flex-col items-center justify-center gap-4">
-                  <Avatar className="h-24 w-24">
-                    <AvatarImage src={profilePreview || formData.profilePicture} />
-                    <AvatarFallback className="text-lg bg-primary text-primary-foreground">
-                      {getInitials(formData.fullName)}
-                    </AvatarFallback>
-                  </Avatar>
-                  
-                  {isEditing && (
-                    <div className="w-full">
-                      <Input 
-                        type="file" 
-                        accept="image/*" 
-                        onChange={handleFileChange}
-                        className="w-full"
-                      />
-                    </div>
-                  )}
-                </div>
+                <ProfileAvatar
+                  fullName={formData.fullName}
+                  profilePicture={formData.profilePicture}
+                  profilePreview={profilePreview}
+                  isEditing={isEditing}
+                  handleFileChange={handleFileChange}
+                />
                 
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="fullName">Full Name</Label>
-                    <Input
-                      id="fullName"
-                      name="fullName"
-                      placeholder="John Doe"
-                      value={formData.fullName}
-                      onChange={handleChange}
-                      disabled={!isEditing}
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="phoneNumber">Phone Number</Label>
-                    <Input
-                      id="phoneNumber"
-                      name="phoneNumber"
-                      placeholder="07XXXXXXXX"
-                      value={formData.phoneNumber}
-                      onChange={handleChange}
-                      disabled={!isEditing}
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="nationalId">National ID</Label>
-                    <Input
-                      id="nationalId"
-                      name="nationalId"
-                      placeholder="XXXXXXXX"
-                      value={formData.nationalId}
-                      onChange={handleChange}
-                      disabled={true}
-                      required
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      National ID is partially hidden for security
-                    </p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="location">Location</Label>
-                    {isEditing ? (
-                      <Select 
-                        value={formData.location} 
-                        onValueChange={handleLocationChange}
-                        disabled={!isEditing}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a location" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {TOWNS.map((town) => (
-                            <SelectItem key={town} value={town}>
-                              {town}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Input
-                        id="location"
-                        value={formData.location}
-                        disabled
-                      />
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="agentCode">Agent Code</Label>
-                    <Input
-                      id="agentCode"
-                      value={formData.agentCode}
-                      disabled
-                      className="bg-muted"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Agent code cannot be changed
-                    </p>
-                  </div>
-                </div>
+                <ProfileFormFields
+                  formData={formData}
+                  handleChange={handleChange}
+                  handleLocationChange={handleLocationChange}
+                  isEditing={isEditing}
+                  towns={TOWNS}
+                />
               </div>
             </form>
           </CardContent>
           
           <CardFooter className="flex justify-end gap-2 border-t bg-muted/20 p-6">
-            {isEditing ? (
-              <>
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setIsEditing(false);
-                    if (agentData) {
-                      setFormData({
-                        fullName: agentData.full_name,
-                        phoneNumber: agentData.phone_number,
-                        nationalId: maskNationalId(agentData.national_id),
-                        location: agentData.location,
-                        agentCode: agentData.agent_code,
-                        profilePicture: agentData.profile_picture || '',
-                      });
-                    }
-                    setProfilePreview(null);
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" form="profile-form">
-                  Save Changes
-                </Button>
-              </>
-            ) : (
-              <Button onClick={() => setIsEditing(true)}>
-                Edit Profile
-              </Button>
-            )}
+            <ProfileActions
+              isEditing={isEditing}
+              onCancel={handleCancel}
+              onEdit={() => setIsEditing(true)}
+            />
           </CardFooter>
         </Card>
       </motion.div>
