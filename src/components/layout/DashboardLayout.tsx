@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { User, Home, LogOut, Settings } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import Footer from './Footer';
 
 interface NavItemProps {
   href: string;
@@ -60,7 +61,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex flex-col min-h-screen bg-background">
       {/* Sidebar */}
       <aside className="hidden md:flex flex-col w-64 border-r border-border bg-card">
         <div className="p-6">
@@ -91,16 +92,21 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       </aside>
       
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto">
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3 }}
-          className="container py-8"
-        >
-          {children}
-        </motion.div>
-      </main>
+      <div className="flex-1 flex flex-col">
+        <main className="flex-1 overflow-y-auto">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            className="container py-8"
+          >
+            {children}
+          </motion.div>
+        </main>
+        
+        {/* Footer */}
+        <Footer />
+      </div>
     </div>
   );
 };
