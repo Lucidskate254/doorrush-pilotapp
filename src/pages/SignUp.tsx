@@ -43,9 +43,15 @@ const SignUp = () => {
         return;
       }
 
-      toast.success('Account created successfully');
-      navigate('/agent-registration');
-    } catch (error) {
+      if (data?.user) {
+        toast.success('Account created successfully');
+        // Store user ID in session storage to retrieve it during agent registration
+        sessionStorage.setItem('userId', data.user.id);
+        navigate('/agent-registration');
+      } else {
+        toast.error('Failed to create account');
+      }
+    } catch (error: any) {
       console.error('Error signing up:', error);
       toast.error('An error occurred during sign up');
     } finally {

@@ -1,12 +1,10 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import AuthLayout from '@/components/layout/AuthLayout';
 import AgentRegistrationForm from '@/components/forms/AgentRegistrationForm';
 import { useAgentRegistration } from '@/hooks/useAgentRegistration';
-import { useAuthCheck } from '@/hooks/useAuthCheck';
 
 const AgentRegistration = () => {
-  const { userId, isLoading: authLoading } = useAuthCheck();
   const {
     fullName,
     setFullName,
@@ -20,17 +18,10 @@ const AgentRegistration = () => {
     handleFileChange,
     handleSubmit,
     isLoading,
-    setUserId
+    userId
   } = useAgentRegistration();
 
-  // Update userId when authCheck completes
-  useEffect(() => {
-    if (userId) {
-      setUserId(userId);
-    }
-  }, [userId, setUserId]);
-
-  if (authLoading) {
+  if (!userId) {
     return (
       <AuthLayout 
         title="Authenticating" 

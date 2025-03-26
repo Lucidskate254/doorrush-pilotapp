@@ -14,7 +14,10 @@ export const useAuthCheck = () => {
     const checkAuthentication = async () => {
       try {
         setIsLoading(true);
+        
+        // Get current session
         const { data } = await supabase.auth.getSession();
+        
         if (!data.session) {
           navigate('/signin');
           return;
@@ -32,6 +35,10 @@ export const useAuthCheck = () => {
           
         if (error) {
           console.error('Error fetching agent data:', error);
+        } else if (!agentData) {
+          // If user is authenticated but has no agent profile, redirect to complete registration
+          navigate('/agent-registration');
+          return;
         } else {
           setAgentData(agentData);
         }
@@ -43,7 +50,27 @@ export const useAuthCheck = () => {
       }
     };
 
+    // Set up auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === 'SIGNED_OUT') {
+          setUserId(null);
+          setAgentData(null);
+          navigate('/signin');
+        } else if (session) {
+          setUserId(session.user.id);
+          // Refresh agent data on auth state change
+          checkAuthentication();
+        }
+      }
+    );
+
     checkAuthentication();
+
+    // Clean up subscription
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [navigate]);
 
   return { userId, isLoading, agentData };

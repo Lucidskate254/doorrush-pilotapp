@@ -37,9 +37,32 @@ const SignIn = () => {
         return;
       }
 
+      if (!data.user) {
+        toast.error('Login failed');
+        return;
+      }
+
+      // Check if the user has completed agent registration
+      const { data: agentData, error: agentError } = await supabase
+        .from('agents')
+        .select('*')
+        .eq('id', data.user.id)
+        .maybeSingle();
+        
+      if (agentError) {
+        console.error('Error checking agent status:', agentError);
+      }
+      
+      if (!agentData) {
+        // User hasn't completed agent registration
+        toast.info('Please complete your agent profile');
+        navigate('/agent-registration');
+        return;
+      }
+
       toast.success('Signed in successfully');
       navigate('/dashboard');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error signing in:', error);
       toast.error('An error occurred during sign in');
     } finally {
