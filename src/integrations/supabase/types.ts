@@ -48,6 +48,33 @@ export type Database = {
         }
         Relationships: []
       }
+      customers: {
+        Row: {
+          address: string
+          created_at: string
+          full_name: string
+          id: string
+          phone_number: string
+          profile_picture: string | null
+        }
+        Insert: {
+          address: string
+          created_at?: string
+          full_name: string
+          id: string
+          phone_number: string
+          profile_picture?: string | null
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          full_name?: string
+          id?: string
+          phone_number?: string
+          profile_picture?: string | null
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           agent_id: string | null
