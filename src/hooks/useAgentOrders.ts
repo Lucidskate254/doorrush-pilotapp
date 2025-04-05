@@ -44,7 +44,8 @@ export const useAgentOrders = () => {
       
       if (agentError) throw agentError;
       
-      setActiveOrders(agentOrders as Order[]);
+      // Type assertion to handle the missing delivery_code field
+      setActiveOrders(agentOrders as unknown as Order[]);
       
       // Fetch available orders (pending and not assigned to any agent)
       const { data: pendingOrders, error: pendingError } = await supabase
@@ -56,7 +57,8 @@ export const useAgentOrders = () => {
       
       if (pendingError) throw pendingError;
       
-      setAvailableOrders(pendingOrders as Order[]);
+      // Type assertion to handle the missing delivery_code field
+      setAvailableOrders(pendingOrders as unknown as Order[]);
     } catch (error) {
       console.error('Error fetching orders:', error);
       toast.error('Failed to load orders');
@@ -146,10 +148,14 @@ export const useAgentOrders = () => {
         .eq('agent_id', userId)
         .single();
       
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error('Error fetching order details:', fetchError);
+        toast.error('Failed to verify delivery code');
+        return;
+      }
       
       // Check if scanned code matches the delivery code
-      if (data.delivery_code !== scannedCode) {
+      if (!data || data.delivery_code !== scannedCode) {
         toast.error('Invalid QR code. Please scan the correct code.');
         return;
       }
