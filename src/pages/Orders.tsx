@@ -5,7 +5,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MapPin, Package, QrCode, Truck } from 'lucide-react';
-import { toast } from 'sonner';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAgentOrders } from '@/hooks/useAgentOrders';
 import { QrScannerDialog } from '@/components/orders/QrScannerDialog';
@@ -56,7 +55,7 @@ const Orders = () => {
         <div>
           <h1 className="text-3xl font-bold tracking-tight mb-2">My Orders</h1>
           <p className="text-muted-foreground">
-            View and manage your assigned delivery orders
+            View and manage your delivery orders
           </p>
         </div>
 
@@ -66,13 +65,69 @@ const Orders = () => {
           </div>
         ) : (
           <>
-            {activeOrders.length > 0 ? (
+            {availableOrders.length > 0 ? (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
               >
-                <h2 className="text-xl font-semibold mb-4">Active Orders</h2>
+                <h2 className="text-xl font-semibold mb-4">Available Orders</h2>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Address</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead className="w-[120px]">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {availableOrders.map((order) => (
+                        <TableRow key={order.id}>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{order.customer_name}</div>
+                              <div className="text-sm text-muted-foreground">{order.customer_contact}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-start gap-2">
+                              <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                              <span>{order.delivery_address}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>{order.description}</TableCell>
+                          <TableCell>
+                            <Button 
+                              variant="default" 
+                              size="sm"
+                              onClick={() => acceptOrder(order.id)}
+                            >
+                              Accept Order
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </motion.div>
+            ) : (
+              <div className="text-center py-10 bg-muted/30 rounded-lg">
+                <Package className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                <h3 className="text-lg font-medium">No available orders</h3>
+                <p className="text-muted-foreground mt-1">There are no available orders in your area</p>
+              </div>
+            )}
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
+            >
+              <h2 className="text-xl font-semibold mb-4">Active Orders</h2>
+              {activeOrders.length > 0 ? (
                 <div className="rounded-md border">
                   <Table>
                     <TableHeader>
@@ -130,67 +185,11 @@ const Orders = () => {
                     </TableBody>
                   </Table>
                 </div>
-              </motion.div>
-            ) : (
-              <div className="text-center py-10 bg-muted/30 rounded-lg">
-                <Package className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                <h3 className="text-lg font-medium">No active orders</h3>
-                <p className="text-muted-foreground mt-1">You don't have any active orders at the moment</p>
-              </div>
-            )}
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.2 }}
-            >
-              <h2 className="text-xl font-semibold mb-4">Available Orders</h2>
-              {availableOrders.length > 0 ? (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Address</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead className="w-[120px]">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {availableOrders.map((order) => (
-                        <TableRow key={order.id}>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">{order.customer_name}</div>
-                              <div className="text-sm text-muted-foreground">{order.customer_contact}</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-start gap-2">
-                              <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                              <span>{order.delivery_address}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>{order.description}</TableCell>
-                          <TableCell>
-                            <Button 
-                              variant="default" 
-                              size="sm"
-                              onClick={() => acceptOrder(order.id)}
-                            >
-                              Accept
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
               ) : (
                 <div className="text-center py-10 bg-muted/30 rounded-lg">
                   <Package className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                  <h3 className="text-lg font-medium">No available orders</h3>
-                  <p className="text-muted-foreground mt-1">There are no available orders in your area</p>
+                  <h3 className="text-lg font-medium">No active orders</h3>
+                  <p className="text-muted-foreground mt-1">You don't have any active orders at the moment</p>
                 </div>
               )}
             </motion.div>

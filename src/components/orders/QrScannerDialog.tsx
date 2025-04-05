@@ -1,8 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { QrReader } from 'react-qr-reader';
 
 interface QrScannerDialogProps {
   open: boolean;
@@ -15,32 +16,25 @@ export const QrScannerDialog: React.FC<QrScannerDialogProps> = ({
   onOpenChange,
   onScanComplete
 }) => {
-  const [scanning, setScanning] = useState(false);
   const [manualCode, setManualCode] = useState('');
+  const [scanning, setScanning] = useState(true);
+  const [scanError, setScanError] = useState<string | null>(null);
 
-  // Mock QR scanning - in a real app, you would implement a proper QR scanner
-  // This uses a simple timeout to simulate scanning (for development purposes)
-  useEffect(() => {
-    if (open && !scanning) {
-      setScanning(true);
-      
-      // For testing, we'll use a mock scanner with a timeout
-      const timer = setTimeout(() => {
-        // In a real implementation, you would use a browser QR scanner API
-        // or a library like react-qr-reader
-        
-        // For testing, you can enter the code manually
-        toast.info('For testing: Please enter the delivery code manually', {
-          duration: 5000
-        });
-      }, 500);
-      
-      return () => {
-        clearTimeout(timer);
+  const handleScan = (result: any) => {
+    if (result) {
+      const scannedText = result?.text;
+      if (scannedText) {
         setScanning(false);
-      };
+        onScanComplete(scannedText);
+      }
     }
-  }, [open, scanning]);
+  };
+
+  const handleError = (error: any) => {
+    console.error('QR scan error:', error);
+    setScanError('Could not access camera. Please enter the code manually.');
+    toast.error('Camera access failed. Use manual entry instead.');
+  };
 
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,26 +46,47 @@ export const QrScannerDialog: React.FC<QrScannerDialogProps> = ({
     }
   };
 
+  const handleDialogChange = (open: boolean) => {
+    if (!open) {
+      setScanning(true);
+      setScanError(null);
+    }
+    onOpenChange(open);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Scan Delivery QR Code</DialogTitle>
         </DialogHeader>
         
         <div className="flex flex-col items-center space-y-4 py-4">
-          <div className="bg-muted rounded-lg w-full max-w-[300px] h-[300px] flex items-center justify-center">
-            <p className="text-center text-muted-foreground px-4">
-              QR Scanner would appear here in production.
-              <br /><br />
-              For development, please use manual entry below.
-            </p>
-          </div>
+          {scanning && !scanError && (
+            <div className="w-full max-w-[300px] h-[300px] overflow-hidden rounded-lg">
+              <QrReader
+                constraints={{ facingMode: 'environment' }}
+                onResult={handleScan}
+                scanDelay={500}
+                containerStyle={{ width: '100%', height: '100%' }}
+                videoStyle={{ width: '100%', height: '100%' }}
+                onError={handleError}
+              />
+            </div>
+          )}
+          
+          {scanError && (
+            <div className="bg-muted rounded-lg w-full max-w-[300px] h-[300px] flex items-center justify-center">
+              <p className="text-center text-muted-foreground px-4">
+                {scanError}
+              </p>
+            </div>
+          )}
           
           <form onSubmit={handleManualSubmit} className="w-full space-y-4">
             <div className="space-y-2">
               <label htmlFor="deliveryCode" className="text-sm font-medium">
-                Enter Delivery Code
+                Enter Delivery Code Manually
               </label>
               <input
                 id="deliveryCode"
