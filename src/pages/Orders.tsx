@@ -156,6 +156,16 @@ const Orders = () => {
                           <TableCell>{renderStatusBadge(order.status)}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
+                              {order.status.toLowerCase() === 'pending' && (
+                                <Button 
+                                  variant="default" 
+                                  size="sm"
+                                  onClick={() => acceptOrder(order.id)}
+                                >
+                                  Accept Order
+                                </Button>
+                              )}
+                            
                               {order.status.toLowerCase() === 'assigned' && (
                                 <Button 
                                   variant="outline" 

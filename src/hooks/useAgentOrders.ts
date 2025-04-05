@@ -16,6 +16,7 @@ export type Order = {
   agent_id?: string | null;
   created_at: string;
   delivered_at?: string | null;
+  confirmed_at?: string | null;
   amount?: number | null;
   delivery_fee?: number | null;
   location?: string | null;
@@ -80,6 +81,7 @@ export const useAgentOrders = () => {
         .update({
           agent_id: userId,
           status: 'assigned',
+          confirmed_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
         .eq('id', orderId)
@@ -94,6 +96,7 @@ export const useAgentOrders = () => {
       if (updatedOrder) {
         updatedOrder.agent_id = userId;
         updatedOrder.status = 'assigned';
+        updatedOrder.confirmed_at = new Date().toISOString();
         setActiveOrders([updatedOrder, ...activeOrders]);
         setAvailableOrders(availableOrders.filter(order => order.id !== orderId));
       }
