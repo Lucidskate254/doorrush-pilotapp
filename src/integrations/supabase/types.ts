@@ -54,6 +54,7 @@ export type Database = {
           created_at: string
           full_name: string
           id: string
+          password_hash: string | null
           phone_number: string
           profile_picture: string | null
         }
@@ -62,6 +63,7 @@ export type Database = {
           created_at?: string
           full_name: string
           id: string
+          password_hash?: string | null
           phone_number: string
           profile_picture?: string | null
         }
@@ -70,6 +72,7 @@ export type Database = {
           created_at?: string
           full_name?: string
           id?: string
+          password_hash?: string | null
           phone_number?: string
           profile_picture?: string | null
         }
@@ -83,10 +86,13 @@ export type Database = {
           customer_contact: string
           customer_id: string
           customer_name: string
+          delivered_at: string | null
           delivery_address: string
+          delivery_code: string
           delivery_fee: number | null
           description: string
           id: string
+          location: string | null
           status: string
           updated_at: string
         }
@@ -97,10 +103,13 @@ export type Database = {
           customer_contact: string
           customer_id: string
           customer_name: string
+          delivered_at?: string | null
           delivery_address: string
+          delivery_code: string
           delivery_fee?: number | null
           description: string
           id?: string
+          location?: string | null
           status?: string
           updated_at?: string
         }
@@ -111,10 +120,13 @@ export type Database = {
           customer_contact?: string
           customer_id?: string
           customer_name?: string
+          delivered_at?: string | null
           delivery_address?: string
+          delivery_code?: string
           delivery_fee?: number | null
           description?: string
           id?: string
+          location?: string | null
           status?: string
           updated_at?: string
         }
