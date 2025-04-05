@@ -30,7 +30,7 @@ export const QrScannerDialog: React.FC<QrScannerDialogProps> = ({
     }
   };
 
-  const handleError = (error: any) => {
+  const handleErrorCallback = (error: Error) => {
     console.error('QR scan error:', error);
     setScanError('Could not access camera. Please enter the code manually.');
     toast.error('Camera access failed. Use manual entry instead.');
@@ -70,7 +70,6 @@ export const QrScannerDialog: React.FC<QrScannerDialogProps> = ({
                 scanDelay={500}
                 containerStyle={{ width: '100%', height: '100%' }}
                 videoStyle={{ width: '100%', height: '100%' }}
-                onError={handleError}
               />
             </div>
           )}
