@@ -76,27 +76,55 @@ export const useAgentOrders = () => {
     }
     
     try {
+      console.log('Accepting order:', orderId, 'by agent:', userId);
+      
+      // First check if the order is still available (pending and not assigned)
+      const { data: orderCheck, error: checkError } = await supabase
+        .from('orders')
+        .select('status, agent_id')
+        .eq('id', orderId)
+        .single();
+        
+      if (checkError) {
+        console.error('Error checking order status:', checkError);
+        toast.error('Failed to accept order: Could not verify order status');
+        return;
+      }
+      
+      if (orderCheck.status !== 'pending' || orderCheck.agent_id !== null) {
+        toast.error('This order is no longer available');
+        // Refresh orders to get the latest state
+        fetchOrders();
+        return;
+      }
+      
+      // Proceed with updating the order
+      const now = new Date().toISOString();
       const { error } = await supabase
         .from('orders')
         .update({
           agent_id: userId,
           status: 'assigned',
-          confirmed_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          confirmed_at: now,
+          updated_at: now
         })
         .eq('id', orderId)
         .eq('status', 'pending'); // Ensure it's still pending
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error accepting order:', error);
+        toast.error('Failed to accept order');
+        return;
+      }
       
-      toast.success('Order accepted');
+      toast.success('Order successfully accepted!');
       
-      // Update local state
+      // Update local state - move the order from available to active
       const updatedOrder = availableOrders.find(order => order.id === orderId);
       if (updatedOrder) {
         updatedOrder.agent_id = userId;
         updatedOrder.status = 'assigned';
-        updatedOrder.confirmed_at = new Date().toISOString();
+        updatedOrder.confirmed_at = now;
         setActiveOrders([updatedOrder, ...activeOrders]);
         setAvailableOrders(availableOrders.filter(order => order.id !== orderId));
       }

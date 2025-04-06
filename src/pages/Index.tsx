@@ -8,19 +8,6 @@ import { Package, Truck, UserCheck, ChevronRight } from 'lucide-react';
 const Index = () => {
   const navigate = useNavigate();
 
-  // Background animation variants
-  const backgroundVariants = {
-    animate: {
-      backgroundPosition: ['0% 0%', '100% 100%'],
-      transition: {
-        duration: 20,
-        ease: 'linear',
-        repeat: Infinity,
-        repeatType: 'reverse'
-      }
-    }
-  };
-
   // Card animation variants
   const cardVariants = {
     initial: { y: 20, opacity: 0 },
@@ -35,24 +22,20 @@ const Index = () => {
     })
   };
 
-  // Floating animation for the elements
-  const floatingAnimation = {
-    y: [-10, 10],
-    transition: {
-      duration: 3,
-      repeat: Infinity,
-      repeatType: 'reverse',
-      ease: 'easeInOut'
-    }
-  };
-
   return (
     <div className="relative min-h-screen overflow-hidden">
       {/* Animated background */}
       <motion.div
         className="absolute inset-0 z-0"
-        variants={backgroundVariants}
-        animate="animate"
+        animate={{
+          backgroundPosition: ['0% 0%', '100% 100%']
+        }}
+        transition={{
+          duration: 20,
+          ease: 'linear',
+          repeat: Infinity,
+          repeatType: 'reverse'
+        }}
         style={{
           backgroundImage: `url('/lovable-uploads/db1b1bef-284d-4de2-8b65-e7260f14efdc.png'), linear-gradient(135deg, #1a365d 0%, #2563eb 100%)`,
           backgroundSize: '500px, cover',
@@ -143,7 +126,15 @@ const Index = () => {
               <Card className="bg-white/10 backdrop-blur-md border-blue-400/20 hover:bg-white/20 transition-all duration-300">
                 <CardHeader>
                   <motion.div
-                    animate={floatingAnimation}
+                    animate={{
+                      y: [-10, 10]
+                    }}
+                    transition={{
+                      duration: 3, 
+                      repeat: Infinity,
+                      repeatType: 'reverse',
+                      ease: 'easeInOut'
+                    }}
                     className="flex justify-center"
                   >
                     {item.icon}

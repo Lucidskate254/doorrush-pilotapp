@@ -20,6 +20,7 @@ const Orders = () => {
   } = useAgentOrders();
   const [scannerOpen, setScannerOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [processingOrderId, setProcessingOrderId] = useState<string | null>(null);
 
   const handleScanQRCode = (orderId: string) => {
     setSelectedOrderId(orderId);
@@ -32,6 +33,12 @@ const Orders = () => {
     }
     setScannerOpen(false);
     setSelectedOrderId(null);
+  };
+
+  const handleAcceptOrder = async (orderId: string) => {
+    setProcessingOrderId(orderId);
+    await acceptOrder(orderId);
+    setProcessingOrderId(null);
   };
 
   const renderStatusBadge = (status: string) => {
@@ -65,7 +72,7 @@ const Orders = () => {
           </div>
         ) : (
           <>
-            {/* REVERSED ORDER: Active Orders shown first */}
+            {/* Active Orders shown first */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -105,9 +112,10 @@ const Orders = () => {
                                 <Button 
                                   variant="default" 
                                   size="sm"
-                                  onClick={() => acceptOrder(order.id)}
+                                  onClick={() => handleAcceptOrder(order.id)}
+                                  disabled={processingOrderId === order.id}
                                 >
-                                  Accept Order
+                                  {processingOrderId === order.id ? 'Accepting...' : 'Accept Order'}
                                 </Button>
                               )}
                             
@@ -149,7 +157,7 @@ const Orders = () => {
               )}
             </motion.div>
 
-            {/* REVERSED ORDER: Available Orders shown second */}
+            {/* Available Orders shown second */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -187,9 +195,10 @@ const Orders = () => {
                             <Button 
                               variant="default" 
                               size="sm"
-                              onClick={() => acceptOrder(order.id)}
+                              onClick={() => handleAcceptOrder(order.id)}
+                              disabled={processingOrderId === order.id}
                             >
-                              Accept Order
+                              {processingOrderId === order.id ? 'Accepting...' : 'Accept Order'}
                             </Button>
                           </TableCell>
                         </TableRow>
