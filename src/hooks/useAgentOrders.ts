@@ -7,7 +7,8 @@ import { Order } from '@/types/orders';
 import * as orderService from '@/services/orderService';
 import { useOrderActions } from '@/hooks/useOrderActions';
 
-export { Order } from '@/types/orders';
+// Change the regular export to an export type for the Order type
+export type { Order } from '@/types/orders';
 
 export const useAgentOrders = () => {
   const { agentData, userId } = useAuthCheck();
