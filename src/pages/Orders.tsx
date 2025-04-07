@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -14,13 +13,13 @@ const Orders = () => {
     activeOrders, 
     availableOrders, 
     isLoading, 
+    processingOrderId,
     acceptOrder, 
     markAsOnTheWay, 
     markAsDelivered 
   } = useAgentOrders();
   const [scannerOpen, setScannerOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  const [processingOrderId, setProcessingOrderId] = useState<string | null>(null);
 
   const handleScanQRCode = (orderId: string) => {
     setSelectedOrderId(orderId);
@@ -33,12 +32,6 @@ const Orders = () => {
     }
     setScannerOpen(false);
     setSelectedOrderId(null);
-  };
-
-  const handleAcceptOrder = async (orderId: string) => {
-    setProcessingOrderId(orderId);
-    await acceptOrder(orderId);
-    setProcessingOrderId(null);
   };
 
   const renderStatusBadge = (status: string) => {
@@ -112,7 +105,7 @@ const Orders = () => {
                                 <Button 
                                   variant="default" 
                                   size="sm"
-                                  onClick={() => handleAcceptOrder(order.id)}
+                                  onClick={() => acceptOrder(order.id)}
                                   disabled={processingOrderId === order.id}
                                 >
                                   {processingOrderId === order.id ? 'Accepting...' : 'Accept Order'}
@@ -195,7 +188,7 @@ const Orders = () => {
                             <Button 
                               variant="default" 
                               size="sm"
-                              onClick={() => handleAcceptOrder(order.id)}
+                              onClick={() => acceptOrder(order.id)}
                               disabled={processingOrderId === order.id}
                             >
                               {processingOrderId === order.id ? 'Accepting...' : 'Accept Order'}
