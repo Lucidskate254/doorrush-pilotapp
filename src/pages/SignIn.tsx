@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,15 +8,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import AuthLayout from '@/components/layout/AuthLayout';
 import { supabase } from '@/integrations/supabase/client';
-
-declare global {
-  interface Window {
-    turnstile: {
-      render: (container: string | HTMLElement, options: any) => string;
-      reset: (widgetId: string) => void;
-    };
-  }
-}
+import useCaptcha from '@/hooks/useCaptcha';
 
 const SignIn = () => {
   const navigate = useNavigate();
@@ -24,51 +16,8 @@ const SignIn = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
-  const [widgetId, setWidgetId] = useState<string | null>(null);
-  const captchaRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    // Load CAPTCHA script when component mounts
-    const loadCaptchaScript = () => {
-      if (window.turnstile) {
-        renderCaptcha();
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
-      script.async = true;
-      script.defer = true;
-      script.onload = () => renderCaptcha();
-      document.head.appendChild(script);
-    };
-
-    loadCaptchaScript();
-
-    return () => {
-      // Clean up on unmount if needed
-      if (widgetId && window.turnstile) {
-        window.turnstile.reset(widgetId);
-      }
-    };
-  }, []);
-
-  const renderCaptcha = () => {
-    if (!captchaRef.current || !window.turnstile) return;
-
-    const id = window.turnstile.render(captchaRef.current, {
-      sitekey: "0x4AAAAAAAFF14mVA6pRk7b", // Cloudflare Turnstile Supabase site key
-      callback: function(token: string) {
-        setCaptchaToken(token);
-      },
-      "expired-callback": function() {
-        setCaptchaToken(null);
-      }
-    });
-    
-    setWidgetId(id);
-  };
+  
+  const { captchaRef, captchaToken, resetCaptcha } = useCaptcha();
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,17 +38,15 @@ const SignIn = () => {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
-      }, {
-        captchaToken: captchaToken,
+        options: {
+          captchaToken: captchaToken,
+        }
       });
 
       if (error) {
         toast.error(error.message);
         // Reset captcha on error
-        if (widgetId && window.turnstile) {
-          window.turnstile.reset(widgetId);
-          setCaptchaToken(null);
-        }
+        resetCaptcha();
         return;
       }
 
@@ -132,10 +79,7 @@ const SignIn = () => {
       console.error('Error signing in:', error);
       toast.error('An error occurred during sign in');
       // Reset captcha on error
-      if (widgetId && window.turnstile) {
-        window.turnstile.reset(widgetId);
-        setCaptchaToken(null);
-      }
+      resetCaptcha();
     } finally {
       setIsLoading(false);
     }
