@@ -21,6 +21,7 @@ export type Database = {
           online_status: boolean | null
           phone_number: string
           profile_picture: string | null
+          user_id: string | null
         }
         Insert: {
           agent_code: string
@@ -33,6 +34,7 @@ export type Database = {
           online_status?: boolean | null
           phone_number: string
           profile_picture?: string | null
+          user_id?: string | null
         }
         Update: {
           agent_code?: string
@@ -45,6 +47,7 @@ export type Database = {
           online_status?: boolean | null
           phone_number?: string
           profile_picture?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
