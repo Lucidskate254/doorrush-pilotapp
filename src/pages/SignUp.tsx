@@ -8,7 +8,6 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import AuthLayout from '@/components/layout/AuthLayout';
 import { supabase } from '@/integrations/supabase/client';
-import useCaptcha from '@/hooks/useCaptcha';
 
 const SignUp = () => {
   const navigate = useNavigate();
@@ -17,8 +16,6 @@ const SignUp = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
-  const { captchaRef, captchaToken, resetCaptcha } = useCaptcha();
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,11 +29,6 @@ const SignUp = () => {
       toast.error('Passwords do not match');
       return;
     }
-
-    if (!captchaToken) {
-      toast.error('Please complete the CAPTCHA verification');
-      return;
-    }
     
     setIsLoading(true);
     
@@ -44,15 +36,10 @@ const SignUp = () => {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          captchaToken: captchaToken
-        }
       });
 
       if (error) {
         toast.error(error.message);
-        // Reset captcha on error
-        resetCaptcha();
         return;
       }
 
@@ -67,8 +54,6 @@ const SignUp = () => {
     } catch (error: any) {
       console.error('Error signing up:', error);
       toast.error('An error occurred during sign up');
-      // Reset captcha on error
-      resetCaptcha();
     } finally {
       setIsLoading(false);
     }
@@ -138,16 +123,11 @@ const SignUp = () => {
             </button>
           </div>
         </div>
-
-        <div className="space-y-2">
-          <Label>CAPTCHA Verification</Label>
-          <div ref={captchaRef} className="flex justify-center my-4"></div>
-        </div>
         
         <Button 
           type="submit" 
           className="w-full h-11"
-          disabled={isLoading || !captchaToken}
+          disabled={isLoading}
         >
           {isLoading ? "Creating account..." : "Create account"}
         </Button>
