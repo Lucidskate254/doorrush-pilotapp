@@ -45,7 +45,6 @@ export const useAgentOrders = () => {
       
       if (agentError) throw agentError;
       
-      // Type assertion to handle the missing delivery_code field
       setActiveOrders(agentOrders as unknown as Order[]);
       
       // Fetch available orders (pending and not assigned to any agent)
@@ -58,7 +57,6 @@ export const useAgentOrders = () => {
       
       if (pendingError) throw pendingError;
       
-      // Type assertion to handle the missing delivery_code field
       setAvailableOrders(pendingOrders as unknown as Order[]);
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -92,7 +90,7 @@ export const useAgentOrders = () => {
       }
       
       if (orderCheck.status !== 'pending' || orderCheck.agent_id !== null) {
-        toast.error('This order is no longer available');
+        toast.error('This order has already been accepted');
         // Refresh orders to get the latest state
         fetchOrders();
         return;
@@ -100,20 +98,27 @@ export const useAgentOrders = () => {
       
       // Proceed with updating the order
       const now = new Date().toISOString();
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('orders')
         .update({
           agent_id: userId,
           status: 'assigned',
-          confirmed_at: now,
-          updated_at: now
+          confirmed_at: now
         })
         .eq('id', orderId)
-        .eq('status', 'pending'); // Ensure it's still pending
+        .is('agent_id', null) // Ensure the agent_id is still null
+        .eq('status', 'pending') // Ensure it's still pending
+        .select();
       
       if (error) {
         console.error('Error accepting order:', error);
         toast.error('Failed to accept order');
+        return;
+      }
+      
+      if (!data || data.length === 0) {
+        toast.error('This order has already been accepted');
+        fetchOrders();
         return;
       }
       
@@ -127,6 +132,9 @@ export const useAgentOrders = () => {
         updatedOrder.confirmed_at = now;
         setActiveOrders([updatedOrder, ...activeOrders]);
         setAvailableOrders(availableOrders.filter(order => order.id !== orderId));
+      } else {
+        // Refresh orders to get the latest state
+        fetchOrders();
       }
     } catch (error) {
       console.error('Error accepting order:', error);
