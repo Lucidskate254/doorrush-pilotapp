@@ -33,9 +33,15 @@ const SignUp = () => {
     setIsLoading(true);
     
     try {
+      // Explicitly disable trigger by setting the registration option
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            is_agent: true // Flag to identify agent registrations
+          }
+        }
       });
 
       if (error) {
