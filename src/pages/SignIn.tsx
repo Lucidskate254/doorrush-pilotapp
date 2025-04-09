@@ -53,9 +53,10 @@ const SignIn = () => {
         console.error('Error checking agent status:', agentError);
       }
       
-      if (!agentData) {
+      if (!agentData || !agentData.full_name || agentData.full_name === '') {
         // User hasn't completed agent registration
         toast.info('Please complete your agent profile');
+        sessionStorage.setItem('userId', data.user.id);
         navigate('/agent-registration');
         return;
       }

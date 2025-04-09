@@ -35,8 +35,10 @@ export const useAuthCheck = () => {
           
         if (error) {
           console.error('Error fetching agent data:', error);
-        } else if (!agentData) {
-          // If user is authenticated but has no agent profile, redirect to complete registration
+        } else if (!agentData || !agentData.full_name || agentData.full_name === '') {
+          // If user is authenticated but has no agent profile or incomplete profile, 
+          // redirect to complete registration
+          sessionStorage.setItem('userId', userId);
           navigate('/agent-registration');
           return;
         } else {
