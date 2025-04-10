@@ -16,7 +16,7 @@ export const useAgentRegistration = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
 
-  // Get userId directly from auth session
+  // Get userId directly from auth session and prefill data if available
   useEffect(() => {
     const initializeUserId = async () => {
       setIsInitializing(true);
@@ -36,7 +36,7 @@ export const useAgentRegistration = () => {
         // Check if agent record exists and has complete profile
         const { data: agent, error: agentError } = await supabase
           .from('agents')
-          .select('id, full_name')
+          .select('id, full_name, phone_number, national_id, location')
           .eq('id', userId)
           .maybeSingle();
           
@@ -46,11 +46,24 @@ export const useAgentRegistration = () => {
           return;
         }
         
-        // If agent exists and has a full name, they've completed registration
-        if (agent?.full_name) {
-          toast.error('Agent profile already exists');
+        // If agent exists and has a national_id and location, they've completed full registration
+        if (agent?.national_id && agent?.location) {
+          toast.success('Your profile is already completed');
           navigate('/dashboard');
           return;
+        }
+        
+        // If agent exists but hasn't completed full registration, prefill the available data
+        if (agent) {
+          if (agent.full_name) setFullName(agent.full_name);
+          if (agent.phone_number) setPhoneNumber(agent.phone_number);
+        }
+
+        // If we have user metadata, try to use that to prefill data as well
+        if (user.user_metadata) {
+          const { full_name, phone_number } = user.user_metadata;
+          if (full_name && !fullName) setFullName(full_name);
+          if (phone_number && !phoneNumber) setPhoneNumber(phone_number);
         }
       } catch (error) {
         console.error('Auth check error:', error);
@@ -80,8 +93,8 @@ export const useAgentRegistration = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!fullName || !phoneNumber || !nationalId || !location || !profilePicture) {
-      toast.error('Please fill in all fields');
+    if (!nationalId || !location || !profilePicture) {
+      toast.error('Please fill in all required fields');
       return;
     }
     
@@ -119,8 +132,6 @@ export const useAgentRegistration = () => {
       const { error: updateError } = await supabase
         .from('agents')
         .update({
-          full_name: fullName,
-          phone_number: phoneNumber,
           national_id: nationalId,
           location: location,
           profile_picture: urlData.publicUrl,
@@ -131,10 +142,10 @@ export const useAgentRegistration = () => {
         throw updateError;
       }
       
-      toast.success('Registration successful');
+      toast.success('Registration completed successfully!');
       navigate('/dashboard');
     } catch (error: any) {
-      console.error('Error registering agent:', error);
+      console.error('Error completing agent registration:', error);
       toast.error(error.message || 'An error occurred during registration');
     } finally {
       setIsLoading(false);

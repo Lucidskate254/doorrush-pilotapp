@@ -14,13 +14,15 @@ const SignUp = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSignUp = async (e: React.SyntheticEvent) => {
+  const handleSignUp = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    if (!email || !password || !confirmPassword) {
+    if (!email || !password || !confirmPassword || !fullName || !phoneNumber) {
       toast.error('Please fill in all fields');
       return;
     }
@@ -52,7 +54,9 @@ const SignUp = () => {
         password,
         options: {
           data: {
-            is_agent: true
+            is_agent: true,
+            full_name: fullName,
+            phone_number: phoneNumber
           }
         }
       });
@@ -78,11 +82,11 @@ const SignUp = () => {
           id: userId,
           user_id: userId,
           email: email,
-          full_name: '',
-          phone_number: '',
-          national_id: '',
-          location: '',
-          agent_code: null
+          full_name: fullName,
+          phone_number: phoneNumber,
+          national_id: '', // Will be filled during complete registration
+          location: '', // Will be filled during complete registration
+          agent_code: null // Will be assigned during complete registration
         });
       
       if (agentError) {
@@ -94,7 +98,7 @@ const SignUp = () => {
         return;
       }
       
-      toast.success('Account created successfully');
+      toast.success('Account created successfully! Please complete your registration to continue.');
       navigate('/agent-registration');
     } catch (error: any) {
       console.error('Error signing up:', error);
@@ -118,6 +122,32 @@ const SignUp = () => {
             placeholder="name@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            required
+            className="h-11"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="fullName">Full Name</Label>
+          <Input
+            id="fullName"
+            type="text"
+            placeholder="John Doe"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            required
+            className="h-11"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="phoneNumber">Phone Number</Label>
+          <Input
+            id="phoneNumber"
+            type="tel"
+            placeholder="07XXXXXXXX"
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
             required
             className="h-11"
           />

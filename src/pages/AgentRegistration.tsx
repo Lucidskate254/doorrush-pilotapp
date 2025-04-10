@@ -55,9 +55,15 @@ const AgentRegistration = () => {
 
   return (
     <AuthLayout 
-      title="Become an Agent" 
-      subtitle="Complete your profile to start delivering"
+      title="Complete Your Agent Profile" 
+      subtitle="Add required verification details to start delivering"
     >
+      <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
+        <p className="text-amber-800 text-sm">
+          Thanks for creating your account! Please complete your agent profile by adding the following verification details.
+        </p>
+      </div>
+      
       <AgentRegistrationForm
         fullName={fullName}
         setFullName={setFullName}
