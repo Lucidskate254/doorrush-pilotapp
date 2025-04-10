@@ -21,46 +21,60 @@ export const useAgentRegistration = () => {
     const initializeUserId = async () => {
       setIsInitializing(true);
       try {
-        // Check if user is authenticated
-        const { data: { user } } = await supabase.auth.getUser();
+        // First check if we have data from sign-up process in sessionStorage
+        const storedSignupData = sessionStorage.getItem('agentSignupData');
+        let signupData = null;
         
-        if (!user) {
-          toast.error('Authentication required');
-          navigate('/signin');
-          return;
-        }
-        
-        const userId = user.id;
-        setUserId(userId);
-        
-        // Check if agent record exists and has complete profile
-        const { data: agent, error: agentError } = await supabase
-          .from('agents')
-          .select('id, full_name, phone_number, national_id, location')
-          .eq('id', userId)
-          .maybeSingle();
+        if (storedSignupData) {
+          signupData = JSON.parse(storedSignupData);
+          setUserId(signupData.userId);
+          if (signupData.fullName) setFullName(signupData.fullName);
+          if (signupData.phoneNumber) setPhoneNumber(signupData.phoneNumber);
+        } else {
+          // If no stored data, check if user is authenticated
+          const { data: { user } } = await supabase.auth.getUser();
           
-        if (agentError) {
-          console.error('Error checking agent record:', agentError);
-          toast.error('Error checking agent status');
-          return;
+          if (!user) {
+            toast.error('Authentication required');
+            navigate('/signin');
+            return;
+          }
+          
+          const userId = user.id;
+          setUserId(userId);
         }
         
-        // If agent exists and has a national_id and location, they've completed full registration
-        if (agent?.national_id && agent?.location) {
-          toast.success('Your profile is already completed');
-          navigate('/dashboard');
-          return;
-        }
-        
-        // If agent exists but hasn't completed full registration, prefill the available data
-        if (agent) {
-          if (agent.full_name) setFullName(agent.full_name);
-          if (agent.phone_number) setPhoneNumber(agent.phone_number);
+        // If we have a userId, check if agent record exists and has complete profile
+        if (userId) {
+          const { data: agent, error: agentError } = await supabase
+            .from('agents')
+            .select('id, full_name, phone_number, national_id, location')
+            .eq('id', userId)
+            .maybeSingle();
+            
+          if (agentError) {
+            console.error('Error checking agent record:', agentError);
+            toast.error('Error checking agent status');
+            return;
+          }
+          
+          // If agent exists and has a national_id and location, they've completed full registration
+          if (agent?.national_id && agent?.location) {
+            toast.success('Your profile is already completed');
+            navigate('/dashboard');
+            return;
+          }
+          
+          // If agent exists but hasn't completed full registration, prefill the available data
+          if (agent) {
+            if (agent.full_name) setFullName(agent.full_name);
+            if (agent.phone_number) setPhoneNumber(agent.phone_number);
+          }
         }
 
-        // If we have user metadata, try to use that to prefill data as well
-        if (user.user_metadata) {
+        // If we have a user with user_metadata, try to use that to prefill data as well
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.user_metadata) {
           const { full_name, phone_number } = user.user_metadata;
           if (full_name && !fullName) setFullName(full_name);
           if (phone_number && !phoneNumber) setPhoneNumber(phone_number);
@@ -98,15 +112,17 @@ export const useAgentRegistration = () => {
       return;
     }
     
-    // Get current user ID from auth
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      toast.error('Authentication required');
-      navigate('/signin');
-      return;
+    // Get current user ID from auth or stored data
+    let userIdForSubmit = userId;
+    if (!userIdForSubmit) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Authentication required');
+        navigate('/signin');
+        return;
+      }
+      userIdForSubmit = user.id;
     }
-    
-    const userIdForSubmit = user.id;
     
     setIsLoading(true);
     
@@ -128,19 +144,50 @@ export const useAgentRegistration = () => {
         .from('agent_profiles')
         .getPublicUrl(filePath);
       
-      // Update agent data
-      const { error: updateError } = await supabase
+      // First, check if this agent already exists
+      const { data: existingAgent } = await supabase
         .from('agents')
-        .update({
-          national_id: nationalId,
-          location: location,
-          profile_picture: urlData.publicUrl,
-        })
-        .eq('id', userIdForSubmit);
+        .select('id, national_id, location')
+        .eq('id', userIdForSubmit)
+        .maybeSingle();
         
-      if (updateError) {
-        throw updateError;
+      if (existingAgent) {
+        // Update existing agent data
+        const { error: updateError } = await supabase
+          .from('agents')
+          .update({
+            full_name: fullName,
+            phone_number: phoneNumber,
+            national_id: nationalId,
+            location: location,
+            profile_picture: urlData.publicUrl,
+          })
+          .eq('id', userIdForSubmit);
+          
+        if (updateError) {
+          throw updateError;
+        }
+      } else {
+        // Create new agent record with all data
+        const { error: insertError } = await supabase
+          .from('agents')
+          .insert({
+            id: userIdForSubmit,
+            user_id: userIdForSubmit,
+            full_name: fullName,
+            phone_number: phoneNumber,
+            national_id: nationalId,
+            location: location,
+            profile_picture: urlData.publicUrl,
+          });
+          
+        if (insertError) {
+          throw insertError;
+        }
       }
+      
+      // Clear the sessionStorage after successful registration
+      sessionStorage.removeItem('agentSignupData');
       
       toast.success('Registration completed successfully!');
       navigate('/dashboard');

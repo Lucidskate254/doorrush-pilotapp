@@ -25,7 +25,7 @@ const AgentRegistration = () => {
   if (isInitializing) {
     return (
       <AuthLayout 
-        title="Authenticating" 
+        title="Loading Your Profile" 
         subtitle="Please wait..."
       >
         <div className="flex justify-center py-8">
@@ -60,7 +60,7 @@ const AgentRegistration = () => {
     >
       <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
         <p className="text-amber-800 text-sm">
-          Thanks for creating your account! Please complete your agent profile by adding the following verification details.
+          Thanks for creating your account! You're almost ready to start delivering. Please complete your agent profile by adding these final verification details.
         </p>
       </div>
       

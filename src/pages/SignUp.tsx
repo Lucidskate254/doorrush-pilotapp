@@ -19,7 +19,7 @@ const SignUp = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSignUp = async (e: React.SyntheticEvent<HTMLFormElement>) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email || !password || !confirmPassword || !fullName || !phoneNumber) {
@@ -75,7 +75,7 @@ const SignUp = () => {
 
       const userId = data.user.id;
 
-      // Create agent record with proper error handling
+      // Create a basic agent record with the required fields
       const { error: agentError } = await supabase
         .from('agents')
         .insert({
@@ -91,12 +91,17 @@ const SignUp = () => {
       
       if (agentError) {
         console.error('Error creating agent record:', agentError);
-        // If agent creation fails, we should clean up the auth user
-        await supabase.auth.signOut();
-        toast.error('Failed to create agent profile. Please try again.');
-        setIsLoading(false);
-        return;
+        // Don't log out the user since they've already signed up
+        toast.error('Failed to create agent profile. Please continue to registration.');
       }
+      
+      // Store this data in sessionStorage to be used in the registration page
+      sessionStorage.setItem('agentSignupData', JSON.stringify({
+        userId,
+        fullName,
+        phoneNumber,
+        email
+      }));
       
       toast.success('Account created successfully! Please complete your registration to continue.');
       navigate('/agent-registration');
