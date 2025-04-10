@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
@@ -59,7 +58,20 @@ const SignUp = () => {
       // Store user ID to use in agent registration
       const userId = data.user.id;
       
-      // Create a minimal agent record - we'll collect full details in the agent registration form
+      // Check if agent record already exists
+      const { data: existingAgent } = await supabase
+        .from('agents')
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle();
+      
+      if (existingAgent) {
+        toast.error('Agent profile already exists for this account');
+        navigate('/dashboard');
+        return;
+      }
+      
+      // Create a minimal agent record
       const { error: agentError } = await supabase
         .from('agents')
         .insert({
@@ -74,14 +86,16 @@ const SignUp = () => {
       
       if (agentError) {
         console.error('Error creating agent record:', agentError);
-        toast.error('Account created but agent profile setup failed. Please contact support.');
-        // Even if agent creation fails, still let them proceed to try again in the registration form
-      } else {
-        toast.success('Account created successfully');
+        // If agent creation fails, we should clean up the auth user
+        await supabase.auth.signOut();
+        toast.error('Failed to create agent profile. Please try again.');
+        setIsLoading(false);
+        return;
       }
       
       // Store user ID in session storage to retrieve it during agent registration
       sessionStorage.setItem('userId', userId);
+      toast.success('Account created successfully');
       navigate('/agent-registration');
     } catch (error: any) {
       console.error('Error signing up:', error);

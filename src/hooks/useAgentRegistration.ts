@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -17,17 +16,47 @@ export const useAgentRegistration = () => {
 
   // Try to get userId from session first, then from auth check
   useEffect(() => {
-    const storedUserId = sessionStorage.getItem('userId');
-    if (storedUserId) {
-      setUserId(storedUserId);
-      return;
-    }
+    const initializeUserId = async () => {
+      // First try to get from session storage
+      const storedUserId = sessionStorage.getItem('userId');
+      if (storedUserId) {
+        setUserId(storedUserId);
+        return;
+      }
 
-    // If no stored userId, check if user is authenticated
-    const checkAuth = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session?.user) {
-        setUserId(data.session.user.id);
+      // If no stored userId, check if user is authenticated
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('Auth session error:', error);
+        toast.error('Authentication error');
+        navigate('/signin');
+        return;
+      }
+
+      if (session?.user) {
+        const userId = session.user.id;
+        setUserId(userId);
+        
+        // Check if agent record exists
+        const { data: agent, error: agentError } = await supabase
+          .from('agents')
+          .select('id, full_name')
+          .eq('id', userId)
+          .maybeSingle();
+          
+        if (agentError) {
+          console.error('Error checking agent record:', agentError);
+          toast.error('Error checking agent status');
+          return;
+        }
+        
+        // If agent exists and has a full name, they've completed registration
+        if (agent?.full_name) {
+          toast.error('Agent profile already exists');
+          navigate('/dashboard');
+          return;
+        }
       } else {
         // If not authenticated, redirect to sign in
         toast.error('Authentication required');
@@ -35,7 +64,7 @@ export const useAgentRegistration = () => {
       }
     };
 
-    checkAuth();
+    initializeUserId();
   }, [navigate]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
