@@ -19,7 +19,7 @@ const SignUp = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSignUp = async (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     
     if (!email || !password || !confirmPassword || !fullName || !phoneNumber) {
@@ -86,7 +86,7 @@ const SignUp = () => {
           phone_number: phoneNumber,
           national_id: '', // Will be filled during complete registration
           location: '', // Will be filled during complete registration
-          agent_code: null // Will be assigned during complete registration
+          agent_code: 'AG-' + Math.random().toString(36).substring(2, 9).toUpperCase() // Generate a unique agent code
         });
       
       if (agentError) {
