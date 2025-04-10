@@ -10,6 +10,7 @@ import SignUp from "@/pages/SignUp";
 import AgentRegistration from "@/pages/AgentRegistration";
 import Dashboard from "@/pages/Dashboard";
 import Orders from "@/pages/Orders";
+import Messages from "@/pages/Messages";
 import Profile from "@/pages/Profile";
 import Settings from "@/pages/Settings";
 import NotFound from "@/pages/NotFound";
@@ -33,6 +34,7 @@ const App = () => (
             {/* Dashboard Routes */}
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/orders" element={<Orders />} />
+            <Route path="/messages" element={<Messages />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/settings" element={<Settings />} />
             

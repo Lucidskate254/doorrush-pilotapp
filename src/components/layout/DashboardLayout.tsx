@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from "@/lib/utils";
-import { User, Home, LogOut, Settings, Menu, X, ChevronLeft, Package } from 'lucide-react';
+import { User, Home, LogOut, Settings, Menu, X, ChevronLeft, Package, MessageCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import Footer from './Footer';
@@ -48,6 +48,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const navigation = [
     { href: "/dashboard", label: "Dashboard", icon: <Home size={18} /> },
     { href: "/orders", label: "Orders", icon: <Package size={18} /> },
+    { href: "/messages", label: "Messages", icon: <MessageCircle size={18} /> },
     { href: "/profile", label: "Profile", icon: <User size={18} /> },
     { href: "/settings", label: "Settings", icon: <Settings size={18} /> },
   ];
@@ -161,6 +162,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             <h1 className="text-xl font-semibold">
               {location.pathname === "/dashboard" && "Dashboard"}
               {location.pathname === "/orders" && "Orders"}
+              {location.pathname === "/messages" && "Messages"}
               {location.pathname === "/profile" && "Profile"}
               {location.pathname === "/settings" && "Settings"}
             </h1>
