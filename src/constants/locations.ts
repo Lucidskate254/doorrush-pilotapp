@@ -13,4 +13,11 @@ export const ELDORET_TOWNS = [
   'Kahoya',
   'Mwanzo',
   'Huruma',
+  'Shauri',
+  'Mwanzo',
+  'Maili Nne',
+  'Chepkoilel',
+  'Marura',
+  'Roadblock',
+  
 ];
