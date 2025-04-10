@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
@@ -56,7 +55,6 @@ const SignIn = () => {
       if (!agentData || !agentData.full_name || agentData.full_name === '') {
         // User hasn't completed agent registration
         toast.info('Please complete your agent profile');
-        sessionStorage.setItem('userId', data.user.id);
         navigate('/agent-registration');
         return;
       }

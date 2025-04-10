@@ -48,7 +48,6 @@ export type Database = {
           phone_number?: string
           profile_picture?: string | null
           user_id?: string | null
-          status?: string | null
         }
         Relationships: []
       }

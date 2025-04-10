@@ -11,6 +11,19 @@ export const useAuthCheck = () => {
   const [agentData, setAgentData] = useState<Tables<'agents'> | null>(null);
 
   useEffect(() => {
+    // Set up auth state change listener first
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === 'SIGNED_OUT') {
+          setUserId(null);
+          setAgentData(null);
+          navigate('/signin');
+        } else if (session) {
+          setUserId(session.user.id);
+        }
+      }
+    );
+
     const checkAuthentication = async () => {
       try {
         setIsLoading(true);
@@ -38,7 +51,6 @@ export const useAuthCheck = () => {
         } else if (!agentData || !agentData.full_name || agentData.full_name === '') {
           // If user is authenticated but has no agent profile or incomplete profile, 
           // redirect to complete registration
-          sessionStorage.setItem('userId', userId);
           navigate('/agent-registration');
           return;
         } else {
@@ -51,21 +63,6 @@ export const useAuthCheck = () => {
         setIsLoading(false);
       }
     };
-
-    // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'SIGNED_OUT') {
-          setUserId(null);
-          setAgentData(null);
-          navigate('/signin');
-        } else if (session) {
-          setUserId(session.user.id);
-          // Refresh agent data on auth state change
-          checkAuthentication();
-        }
-      }
-    );
 
     checkAuthentication();
 

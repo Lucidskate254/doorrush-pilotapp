@@ -18,10 +18,11 @@ const AgentRegistration = () => {
     handleFileChange,
     handleSubmit,
     isLoading,
-    userId
+    userId,
+    isInitializing
   } = useAgentRegistration();
 
-  if (!userId) {
+  if (isInitializing) {
     return (
       <AuthLayout 
         title="Authenticating" 
@@ -29,6 +30,24 @@ const AgentRegistration = () => {
       >
         <div className="flex justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </AuthLayout>
+    );
+  }
+
+  if (!userId) {
+    return (
+      <AuthLayout 
+        title="Authentication Error" 
+        subtitle="Please sign in again"
+      >
+        <div className="flex justify-center py-8">
+          <button 
+            onClick={() => window.location.href = '/signin'}
+            className="bg-primary text-white px-4 py-2 rounded hover:bg-primary/90"
+          >
+            Go to Sign In
+          </button>
         </div>
       </AuthLayout>
     );
