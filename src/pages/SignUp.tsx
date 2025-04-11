@@ -5,11 +5,9 @@ import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import AuthLayout from '@/components/layout/AuthLayout';
 import { supabase } from '@/integrations/supabase/client';
-import { ELDORET_TOWNS } from '@/constants/locations';
 
 const SignUp = () => {
   const navigate = useNavigate();
@@ -18,8 +16,6 @@ const SignUp = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [nationalId, setNationalId] = useState('');
-  const [location, setLocation] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -27,7 +23,7 @@ const SignUp = () => {
     e.preventDefault();
     
     // Validate required fields
-    if (!email || !password || !confirmPassword || !fullName || !phoneNumber || !nationalId || !location) {
+    if (!email || !password || !confirmPassword || !fullName || !phoneNumber) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -63,45 +59,15 @@ const SignUp = () => {
         return;
       }
 
-      const userId = data.user.id;
-      
-      // Generate a unique agent code
-      const agentCode = `AG-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
-      
-      // Create the agent record with all required fields
-      const { error: agentError } = await supabase
-        .from('agents')
-        .insert({
-          id: userId,
-          user_id: userId,
-          email: email,
-          full_name: fullName,
-          phone_number: phoneNumber,
-          national_id: nationalId,
-          location: location,
-          profile_picture: null, // Will be updated during complete registration
-          agent_code: agentCode,
-          online_status: false,
-          earnings: 0
-        });
-      
-      if (agentError) {
-        console.error('Error creating agent record:', agentError);
-        toast.error('Failed to create agent profile: ' + agentError.message);
-        return;
-      }
-      
       // Store data in sessionStorage to be used in the registration page
       sessionStorage.setItem('agentSignupData', JSON.stringify({
-        userId,
-        fullName,
-        phoneNumber,
-        email,
-        nationalId,
-        location
+        userId: data.user.id,
+        email: email,
+        fullName: fullName,
+        phoneNumber: phoneNumber
       }));
       
-      toast.success('Account created successfully!');
+      toast.success('Account created successfully! Complete your agent profile.');
       navigate('/agent-registration');
     } catch (error: any) {
       console.error('Error signing up:', error);
@@ -154,35 +120,6 @@ const SignUp = () => {
             required
             className="h-11"
           />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="nationalId">National ID</Label>
-          <Input
-            id="nationalId"
-            type="text"
-            placeholder="Enter your National ID"
-            value={nationalId}
-            onChange={(e) => setNationalId(e.target.value)}
-            required
-            className="h-11"
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="location">Location</Label>
-          <Select value={location} onValueChange={setLocation} required>
-            <SelectTrigger className="h-11">
-              <SelectValue placeholder="Select a location" />
-            </SelectTrigger>
-            <SelectContent>
-              {ELDORET_TOWNS.map((town) => (
-                <SelectItem key={town} value={town}>
-                  {town}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
         
         <div className="space-y-2">

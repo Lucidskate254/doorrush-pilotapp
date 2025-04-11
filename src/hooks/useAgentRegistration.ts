@@ -16,7 +16,7 @@ export const useAgentRegistration = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
 
-  // Get userId directly from auth session and prefill data if available
+  // Initialize with data from auth session
   useEffect(() => {
     const initializeUserId = async () => {
       setIsInitializing(true);
@@ -30,8 +30,6 @@ export const useAgentRegistration = () => {
           setUserId(signupData.userId);
           if (signupData.fullName) setFullName(signupData.fullName);
           if (signupData.phoneNumber) setPhoneNumber(signupData.phoneNumber);
-          if (signupData.nationalId) setNationalId(signupData.nationalId);
-          if (signupData.location) setLocation(signupData.location);
         } else {
           // If no stored data, check if user is authenticated
           const { data: { user } } = await supabase.auth.getUser();
@@ -44,9 +42,16 @@ export const useAgentRegistration = () => {
           
           const userId = user.id;
           setUserId(userId);
+          
+          // Try to get user metadata
+          if (user.user_metadata) {
+            const { full_name, phone_number } = user.user_metadata;
+            if (full_name) setFullName(full_name);
+            if (phone_number) setPhoneNumber(phone_number);
+          }
         }
         
-        // If we have a userId, check if agent record exists and has complete profile
+        // If we have a userId, check if agent record exists
         if (userId) {
           const { data: agent, error: agentError } = await supabase
             .from('agents')
@@ -74,14 +79,6 @@ export const useAgentRegistration = () => {
             if (agent.national_id) setNationalId(agent.national_id);
             if (agent.location) setLocation(agent.location);
           }
-        }
-
-        // If we have a user with user_metadata, try to use that to prefill data as well
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user?.user_metadata) {
-          const { full_name, phone_number } = user.user_metadata;
-          if (full_name && !fullName) setFullName(full_name);
-          if (phone_number && !phoneNumber) setPhoneNumber(phone_number);
         }
       } catch (error) {
         console.error('Auth check error:', error);
@@ -151,9 +148,12 @@ export const useAgentRegistration = () => {
       // First, check if this agent already exists
       const { data: existingAgent } = await supabase
         .from('agents')
-        .select('id, national_id, location, agent_code')
+        .select('id')
         .eq('id', userIdForSubmit)
         .maybeSingle();
+        
+      // Generate a unique agent code
+      const agentCode = `AG-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
         
       if (existingAgent) {
         // Update existing agent data
@@ -172,9 +172,7 @@ export const useAgentRegistration = () => {
           throw updateError;
         }
       } else {
-        // Create new agent record with all data - including agent_code
-        const agentCode = `AG-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
-        
+        // Create new agent record with all required fields
         const { error: insertError } = await supabase
           .from('agents')
           .insert({
@@ -185,7 +183,9 @@ export const useAgentRegistration = () => {
             national_id: nationalId,
             location: location,
             profile_picture: urlData.publicUrl,
-            agent_code: agentCode // Add the required agent_code field
+            agent_code: agentCode,
+            online_status: false,
+            earnings: 0
           });
           
         if (insertError) {
