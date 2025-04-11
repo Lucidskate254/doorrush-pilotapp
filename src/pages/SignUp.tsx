@@ -19,33 +19,11 @@ const SignUp = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Validate email format
-  const isValidEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  // Validate password strength
-  const isValidPassword = (password: string): boolean => {
-    return password.length >= 6; // Minimum 6 characters for simplicity
-  };
-
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Form validation
     if (!email || !password || !confirmPassword || !fullName || !phoneNumber) {
       toast.error('Please fill in all fields');
-      return;
-    }
-    
-    if (!isValidEmail(email)) {
-      toast.error('Please enter a valid email address');
-      return;
-    }
-    
-    if (!isValidPassword(password)) {
-      toast.error('Password must be at least 6 characters long');
       return;
     }
     
@@ -57,21 +35,14 @@ const SignUp = () => {
     setIsLoading(true);
     
     try {
-      // First, check if user already exists in the agents table
-      const { data: existingAgent, error: checkError } = await supabase
+      // First, check if user already exists
+      const { data: existingUser } = await supabase
         .from('agents')
         .select('id')
         .eq('email', email)
         .maybeSingle();
 
-      if (checkError) {
-        console.error('Error checking existing user:', checkError);
-        toast.error('Error checking account availability');
-        setIsLoading(false);
-        return;
-      }
-
-      if (existingAgent) {
+      if (existingUser) {
         toast.error('An account with this email already exists');
         setIsLoading(false);
         return;
@@ -104,21 +75,18 @@ const SignUp = () => {
 
       const userId = data.user.id;
 
-      // Generate a unique agent code
-      const agentCode = 'AG-' + Math.random().toString(36).substring(2, 9).toUpperCase();
-      
-      // Create agent record
+      // Create a basic agent record with the required fields
       const { error: agentError } = await supabase
         .from('agents')
         .insert({
           id: userId,
           user_id: userId,
+          email: email,
           full_name: fullName,
           phone_number: phoneNumber,
-          email: email,
           national_id: '', // Will be filled during complete registration
           location: '', // Will be filled during complete registration
-          agent_code: agentCode
+          agent_code: null // Will be assigned during complete registration
         });
       
       if (agentError) {
