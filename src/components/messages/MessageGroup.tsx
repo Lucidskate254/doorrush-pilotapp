@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar } from '@/components/ui/avatar';
@@ -29,8 +28,8 @@ const MessageGroup: React.FC<MessageGroupProps> = ({
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
 
-  // Get customer ID from messages (assuming the first non-agent sender is the customer)
-  const customerId = messages.find(m => m.sender_id !== agentId)?.sender_id || orderDetails?.customer_id;
+  // Get customer ID from order details
+  const customerId = orderDetails?.customer_id;
 
   const handleSendMessage = async () => {
     if (!customerId) {
@@ -81,30 +80,36 @@ const MessageGroup: React.FC<MessageGroupProps> = ({
       </CardHeader>
       <CardContent className="pb-3">
         <div className="space-y-4">
-          {messages.map((message) => (
-            <div 
-              key={message.id} 
-              className={`flex ${message.sender_id === agentId ? 'justify-end' : 'justify-start'}`}
-            >
-              <div className={`flex gap-2 max-w-[80%] ${message.sender_id === agentId ? 'flex-row-reverse' : ''}`}>
-                <Avatar className="h-8 w-8">
-                  <div className="h-full w-full flex items-center justify-center text-xs font-semibold">
-                    {message.sender_id === agentId ? 'Me' : 'C'}
+          {messages.map((message) => {
+            // Determine if the message is from the agent or customer
+            const isAgentMessage = message.sender_id === agentId;
+            const senderName = isAgentMessage ? 'Me' : orderDetails?.customer_name || 'Customer';
+            
+            return (
+              <div 
+                key={message.id} 
+                className={`flex ${isAgentMessage ? 'justify-end' : 'justify-start'}`}
+              >
+                <div className={`flex gap-2 max-w-[80%] ${isAgentMessage ? 'flex-row-reverse' : ''}`}>
+                  <Avatar className="h-8 w-8">
+                    <div className="h-full w-full flex items-center justify-center text-xs font-semibold">
+                      {senderName.charAt(0)}
+                    </div>
+                  </Avatar>
+                  <div className={`p-3 rounded-lg ${
+                    isAgentMessage 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'bg-secondary'
+                  }`}>
+                    <p>{message.message_text}</p>
+                    <p className="text-xs mt-1 opacity-70">
+                      {message.created_at && formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
+                    </p>
                   </div>
-                </Avatar>
-                <div className={`p-3 rounded-lg ${
-                  message.sender_id === agentId 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'bg-secondary'
-                }`}>
-                  <p>{message.message_text}</p>
-                  <p className="text-xs mt-1 opacity-70">
-                    {message.created_at && formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
-                  </p>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </CardContent>
       <CardFooter>
