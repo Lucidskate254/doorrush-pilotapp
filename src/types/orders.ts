@@ -1,4 +1,3 @@
-
 export type Order = {
   id: string;
   customer_name: string;
@@ -17,4 +16,4 @@ export type Order = {
   location?: string | null;
 };
 
-export type OrderStatus = 'pending' | 'assigned' | 'on the way' | 'delivered';
+export type OrderStatus = 'pending' | 'assigned' | 'in_transit' | 'delivered';

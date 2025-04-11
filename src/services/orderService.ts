@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Order } from '@/types/orders';
+import { Order, OrderStatus } from '@/types/orders';
 import { toast } from 'sonner';
 
 // Fetch active orders (assigned to this agent and not delivered)
@@ -148,7 +148,7 @@ export const markOrderAsInTransit = async (orderId: string, userId: string) => {
 export const markOrderAsDelivered = async (orderId: string, userId: string, deliveryCode: string) => {
   const { data: orderCheck, error: checkError } = await supabase
     .from('orders')
-    .select('delivery_code')
+    .select('delivery_code, status')
     .eq('id', orderId)
     .eq('agent_id', userId)
     .single();
@@ -159,6 +159,10 @@ export const markOrderAsDelivered = async (orderId: string, userId: string, deli
 
   if (orderCheck.delivery_code !== deliveryCode) {
     throw new Error('Invalid delivery code');
+  }
+
+  if (orderCheck.status !== 'in_transit') {
+    throw new Error('Order must be in transit before marking as delivered');
   }
 
   const { data, error } = await supabase

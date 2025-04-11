@@ -40,8 +40,8 @@ const Orders = () => {
         return <Badge variant="outline" className="bg-yellow-100 text-yellow-800">Pending</Badge>;
       case 'assigned':
         return <Badge variant="outline" className="bg-blue-100 text-blue-800">Assigned</Badge>;
-      case 'on the way':
-        return <Badge variant="outline" className="bg-purple-100 text-purple-800">On The Way</Badge>;
+      case 'in_transit':
+        return <Badge variant="outline" className="bg-purple-100 text-purple-800">In Transit</Badge>;
       case 'delivered':
         return <Badge variant="outline" className="bg-green-100 text-green-800">Delivered</Badge>;
       default:
@@ -119,12 +119,11 @@ const Orders = () => {
                                   onClick={() => markAsOnTheWay(order.id)}
                                 >
                                   <Truck className="h-4 w-4 mr-1" />
-                                  On Way
+                                  Start Delivery
                                 </Button>
                               )}
                               
-                              {(order.status.toLowerCase() === 'assigned' || 
-                               order.status.toLowerCase() === 'on the way') && (
+                              {order.status.toLowerCase() === 'in_transit' && (
                                 <Button 
                                   variant="secondary" 
                                   size="sm"

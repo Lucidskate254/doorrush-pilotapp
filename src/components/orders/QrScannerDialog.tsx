@@ -1,9 +1,9 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { QrReader } from 'react-qr-reader';
+import { BrowserQRCodeReader, IScannerControls } from '@zxing/browser';
+import { Result } from '@zxing/library';
 
 interface QrScannerDialogProps {
   open: boolean;
@@ -19,22 +19,42 @@ export const QrScannerDialog: React.FC<QrScannerDialogProps> = ({
   const [manualCode, setManualCode] = useState('');
   const [scanning, setScanning] = useState(true);
   const [scanError, setScanError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const controlsRef = useRef<IScannerControls | null>(null);
 
-  const handleScan = (result: any) => {
-    if (result) {
-      const scannedText = result?.text;
-      if (scannedText) {
-        setScanning(false);
-        onScanComplete(scannedText);
-      }
+  useEffect(() => {
+    if (open && scanning && !scanError && videoRef.current) {
+      const codeReader = new BrowserQRCodeReader();
+      
+      codeReader.decodeFromVideoDevice(undefined, videoRef.current, (result: Result | null, error: Error | null) => {
+        if (result) {
+          const scannedText = result.getText();
+          if (scannedText) {
+            setScanning(false);
+            onScanComplete(scannedText);
+          }
+        }
+        if (error) {
+          console.error('QR scan error:', error);
+          setScanError('Could not access camera. Please enter the code manually.');
+          toast.error('Camera access failed. Use manual entry instead.');
+        }
+      }).then((controls) => {
+        controlsRef.current = controls;
+      }).catch((error) => {
+        console.error('QR scanner initialization error:', error);
+        setScanError('Could not initialize camera. Please enter the code manually.');
+        toast.error('Camera initialization failed. Use manual entry instead.');
+      });
     }
-  };
 
-  const handleErrorCallback = (error: Error) => {
-    console.error('QR scan error:', error);
-    setScanError('Could not access camera. Please enter the code manually.');
-    toast.error('Camera access failed. Use manual entry instead.');
-  };
+    return () => {
+      if (controlsRef.current) {
+        controlsRef.current.stop();
+        controlsRef.current = null;
+      }
+    };
+  }, [open, scanning, scanError, onScanComplete]);
 
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +70,10 @@ export const QrScannerDialog: React.FC<QrScannerDialogProps> = ({
     if (!open) {
       setScanning(true);
       setScanError(null);
+      if (controlsRef.current) {
+        controlsRef.current.stop();
+        controlsRef.current = null;
+      }
     }
     onOpenChange(open);
   };
@@ -64,12 +88,10 @@ export const QrScannerDialog: React.FC<QrScannerDialogProps> = ({
         <div className="flex flex-col items-center space-y-4 py-4">
           {scanning && !scanError && (
             <div className="w-full max-w-[300px] h-[300px] overflow-hidden rounded-lg">
-              <QrReader
-                constraints={{ facingMode: 'environment' }}
-                onResult={handleScan}
-                scanDelay={500}
-                containerStyle={{ width: '100%', height: '100%' }}
-                videoStyle={{ width: '100%', height: '100%' }}
+              <video
+                ref={videoRef}
+                className="w-full h-full object-cover"
+                playsInline
               />
             </div>
           )}
