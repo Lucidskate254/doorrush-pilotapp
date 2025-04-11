@@ -147,7 +147,7 @@ export const useAgentRegistration = () => {
       // First, check if this agent already exists
       const { data: existingAgent } = await supabase
         .from('agents')
-        .select('id, national_id, location')
+        .select('id, national_id, location, agent_code')
         .eq('id', userIdForSubmit)
         .maybeSingle();
         
@@ -168,7 +168,9 @@ export const useAgentRegistration = () => {
           throw updateError;
         }
       } else {
-        // Create new agent record with all data
+        // Create new agent record with all data - including agent_code
+        const agentCode = `AG-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+        
         const { error: insertError } = await supabase
           .from('agents')
           .insert({
@@ -179,6 +181,7 @@ export const useAgentRegistration = () => {
             national_id: nationalId,
             location: location,
             profile_picture: urlData.publicUrl,
+            agent_code: agentCode // Add the required agent_code field
           });
           
         if (insertError) {
