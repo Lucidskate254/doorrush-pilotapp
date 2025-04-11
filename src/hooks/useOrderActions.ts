@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { Order } from '@/types/orders';
 import * as orderService from '@/services/orderService';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router-dom';
 
 export const useOrderActions = (userId: string | null, refreshOrders: () => void) => {
   const [processingOrderId, setProcessingOrderId] = useState<string | null>(null);
-  const router = useRouter();
+  const navigate = useNavigate();
 
   // Accept an order
   const acceptOrder = async (orderId: string) => {
@@ -43,7 +43,7 @@ export const useOrderActions = (userId: string | null, refreshOrders: () => void
         toast.success('Order assigned successfully!');
         refreshOrders();
         // Navigate to OrderDetails page
-        router.push(`/order-details?id=${orderId}`);
+        navigate(`/order-details?id=${orderId}`);
       }
     } catch (error) {
       if (error instanceof Error) {
