@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
@@ -35,20 +34,7 @@ const SignUp = () => {
     setIsLoading(true);
     
     try {
-      // First, check if user already exists
-      const { data: existingUser } = await supabase
-        .from('agents')
-        .select('id')
-        .eq('email', email)
-        .maybeSingle();
-
-      if (existingUser) {
-        toast.error('An account with this email already exists');
-        setIsLoading(false);
-        return;
-      }
-
-      // Sign up the user with authentication
+      // Sign up the user with Supabase Auth
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -86,7 +72,7 @@ const SignUp = () => {
           phone_number: phoneNumber,
           national_id: '', // Will be filled during complete registration
           location: '', // Will be filled during complete registration
-          agent_code: null // Will be assigned during complete registration
+          agent_code: `AG-${Math.random().toString(36).substring(2, 9).toUpperCase()}` // Generate a temporary agent code
         });
       
       if (agentError) {
