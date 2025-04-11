@@ -43,7 +43,7 @@ export const useOrderActions = (userId: string | null, refreshOrders: () => void
         toast.success('Order assigned successfully!');
         refreshOrders();
         // Navigate to OrderDetails page
-        router.push(`/orders/${orderId}`);
+        router.push(`/order-details?id=${orderId}`);
       }
     } catch (error) {
       if (error instanceof Error) {
