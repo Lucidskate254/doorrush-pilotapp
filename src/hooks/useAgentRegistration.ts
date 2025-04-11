@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { getAgentByUserId, saveAgentData } from '@/services/agentService';
 
 export const useAgentRegistration = () => {
   const navigate = useNavigate();
@@ -53,31 +54,25 @@ export const useAgentRegistration = () => {
         
         // If we have a userId, check if agent record exists
         if (userId) {
-          const { data: agent, error: agentError } = await supabase
-            .from('agents')
-            .select('id, full_name, phone_number, national_id, location, profile_picture')
-            .eq('id', userId)
-            .maybeSingle();
+          try {
+            const agent = await getAgentByUserId(userId);
             
-          if (agentError) {
-            console.error('Error checking agent record:', agentError);
-            toast.error('Error checking agent status');
-            return;
-          }
-          
-          // If agent exists and has a profile_picture, they've completed full registration
-          if (agent?.profile_picture) {
-            toast.success('Your profile is already completed');
-            navigate('/dashboard');
-            return;
-          }
-          
-          // If agent exists but hasn't completed full registration, prefill the available data
-          if (agent) {
-            if (agent.full_name) setFullName(agent.full_name);
-            if (agent.phone_number) setPhoneNumber(agent.phone_number);
-            if (agent.national_id) setNationalId(agent.national_id);
-            if (agent.location) setLocation(agent.location);
+            // If agent exists and has a profile_picture, they've completed full registration
+            if (agent?.profile_picture) {
+              toast.success('Your profile is already completed');
+              navigate('/dashboard');
+              return;
+            }
+            
+            // If agent exists but hasn't completed full registration, prefill the available data
+            if (agent) {
+              if (agent.full_name) setFullName(agent.full_name);
+              if (agent.phone_number) setPhoneNumber(agent.phone_number);
+              if (agent.national_id) setNationalId(agent.national_id);
+              if (agent.location) setLocation(agent.location);
+            }
+          } catch (error) {
+            console.error('Error checking agent record:', error);
           }
         }
       } catch (error) {
@@ -128,70 +123,13 @@ export const useAgentRegistration = () => {
     setIsLoading(true);
     
     try {
-      // Upload profile picture
-      const fileExt = profilePicture.name.split('.').pop();
-      const filePath = `${userIdForSubmit}/${Date.now()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('agent_profiles')
-        .upload(filePath, profilePicture);
-        
-      if (uploadError) {
-        throw uploadError;
-      }
-      
-      // Get public URL for the uploaded image
-      const { data: urlData } = supabase.storage
-        .from('agent_profiles')
-        .getPublicUrl(filePath);
-      
-      // First, check if this agent already exists
-      const { data: existingAgent } = await supabase
-        .from('agents')
-        .select('id')
-        .eq('id', userIdForSubmit)
-        .maybeSingle();
-        
-      // Generate a unique agent code
-      const agentCode = `AG-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
-        
-      if (existingAgent) {
-        // Update existing agent data
-        const { error: updateError } = await supabase
-          .from('agents')
-          .update({
-            full_name: fullName,
-            phone_number: phoneNumber,
-            national_id: nationalId,
-            location: location,
-            profile_picture: urlData.publicUrl,
-          })
-          .eq('id', userIdForSubmit);
-          
-        if (updateError) {
-          throw updateError;
-        }
-      } else {
-        // Create new agent record with all required fields
-        const { error: insertError } = await supabase
-          .from('agents')
-          .insert({
-            id: userIdForSubmit,
-            user_id: userIdForSubmit,
-            full_name: fullName,
-            phone_number: phoneNumber,
-            national_id: nationalId,
-            location: location,
-            profile_picture: urlData.publicUrl,
-            agent_code: agentCode,
-            online_status: false,
-            earnings: 0
-          });
-          
-        if (insertError) {
-          throw insertError;
-        }
-      }
+      await saveAgentData(userIdForSubmit, {
+        fullName,
+        phoneNumber,
+        nationalId,
+        location,
+        profilePicture
+      });
       
       // Clear the sessionStorage after successful registration
       sessionStorage.removeItem('agentSignupData');
