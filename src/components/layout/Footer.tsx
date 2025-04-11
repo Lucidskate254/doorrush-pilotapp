@@ -76,6 +76,7 @@ const Footer = () => {
                 >
                   <Phone size={16} className="mr-2" />
                   +254 758 301 710
+                  +254 780 028 064
                 </a>
               </li>
               <li>
@@ -85,6 +86,7 @@ const Footer = () => {
                 >
                   <Mail size={16} className="mr-2" />
                   ryanemunyasa@gmail.com
+                  ryanmawhite72@gmail.com
                 </a>
               </li>
               <li className="flex items-center text-sm text-muted-foreground">
