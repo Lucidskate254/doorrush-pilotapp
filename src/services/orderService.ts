@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Order } from '@/types/orders';
 import { toast } from 'sonner';
@@ -50,6 +49,25 @@ export const checkOrderAvailability = async (orderId: string) => {
 
 // Accept an order
 export const acceptOrderInDb = async (orderId: string, userId: string) => {
+  // First check if the order is available
+  const { data: orderCheck, error: checkError } = await supabase
+    .from('orders')
+    .select('status, agent_id')
+    .eq('id', orderId)
+    .single();
+
+  if (checkError) {
+    throw new Error('Failed to check order status');
+  }
+
+  if (!orderCheck) {
+    throw new Error('Order not found');
+  }
+
+  if (orderCheck.status !== 'pending' || orderCheck.agent_id !== null) {
+    throw new Error('This order has already been accepted');
+  }
+
   const now = new Date().toISOString();
   const { data, error } = await supabase
     .from('orders')
@@ -59,13 +77,19 @@ export const acceptOrderInDb = async (orderId: string, userId: string) => {
       confirmed_at: now
     })
     .eq('id', orderId)
-    .is('agent_id', null) // Ensure the agent_id is still null
-    .eq('status', 'pending') // Ensure it's still pending
+    .eq('status', 'pending')
+    .eq('agent_id', null)
     .select();
-  
-  if (error) throw error;
-  
-  return { data, timestamp: now };
+
+  if (error) {
+    throw new Error('Failed to accept order: ' + error.message);
+  }
+
+  if (!data || data.length === 0) {
+    throw new Error('Order was already accepted by another agent');
+  }
+
+  return { data, error: null };
 };
 
 // Mark order as on the way

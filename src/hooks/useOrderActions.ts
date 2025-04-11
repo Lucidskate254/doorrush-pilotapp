@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Order } from '@/types/orders';
@@ -38,18 +37,18 @@ export const useOrderActions = (userId: string | null, refreshOrders: () => void
       // Proceed with updating the order
       const { data } = await orderService.acceptOrderInDb(orderId, userId);
       
-      if (!data || data.length === 0) {
-        toast.error('This order has already been accepted');
+      if (data) {
+        toast.success('Order successfully accepted!');
         refreshOrders();
-        return;
       }
-      
-      toast.success('Order successfully accepted!');
-      refreshOrders();
-      
     } catch (error) {
-      console.error('Error accepting order:', error);
-      toast.error('Failed to accept order');
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error('An unexpected error occurred while accepting the order');
+      }
+      // Refresh orders to get the latest state
+      refreshOrders();
     } finally {
       setProcessingOrderId(null);
     }
