@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { Order } from '@/types/orders';
 import * as orderService from '@/services/orderService';
+import { useRouter } from 'next/navigation';
 
 export const useOrderActions = (userId: string | null, refreshOrders: () => void) => {
   const [processingOrderId, setProcessingOrderId] = useState<string | null>(null);
+  const router = useRouter();
 
   // Accept an order
   const acceptOrder = async (orderId: string) => {
@@ -38,8 +40,10 @@ export const useOrderActions = (userId: string | null, refreshOrders: () => void
       const { data } = await orderService.acceptOrderInDb(orderId, userId);
       
       if (data) {
-        toast.success('Order successfully accepted!');
+        toast.success('Order assigned successfully!');
         refreshOrders();
+        // Navigate to OrderDetails page
+        router.push(`/orders/${orderId}`);
       }
     } catch (error) {
       if (error instanceof Error) {
@@ -56,40 +60,43 @@ export const useOrderActions = (userId: string | null, refreshOrders: () => void
 
   // Mark order as on the way
   const markAsOnTheWay = async (orderId: string) => {
-    if (!userId) return;
-    
+    if (!userId) {
+      toast.error('You must be logged in to update order status');
+      return;
+    }
+
     try {
-      await orderService.markOrderAsOnTheWay(orderId, userId);
-      toast.success('Order marked as on the way');
-      refreshOrders();
+      const { data } = await orderService.markOrderAsInTransit(orderId, userId);
+      if (data) {
+        toast.success('Order status updated to in transit');
+      }
     } catch (error) {
-      console.error('Error updating order status:', error);
-      toast.error('Failed to update order status');
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error('Failed to update order status');
+      }
     }
   };
 
   // Mark order as delivered (with QR code verification)
-  const markAsDelivered = async (orderId: string, scannedCode: string) => {
-    if (!userId) return;
-    
+  const markAsDelivered = async (orderId: string, deliveryCode: string) => {
+    if (!userId) {
+      toast.error('You must be logged in to mark order as delivered');
+      return;
+    }
+
     try {
-      // First, verify that the delivery code matches
-      const data = await orderService.verifyDeliveryCode(orderId, userId);
-      
-      // Check if scanned code matches the delivery code
-      if (!data || data.delivery_code !== scannedCode) {
-        toast.error('Invalid QR code. Please scan the correct code.');
-        return;
+      const { data } = await orderService.markOrderAsDelivered(orderId, userId, deliveryCode);
+      if (data) {
+        toast.success('Order marked as delivered');
       }
-      
-      // Update the order status to delivered
-      await orderService.markOrderAsDelivered(orderId, userId);
-      
-      toast.success('Order successfully delivered!');
-      refreshOrders();
     } catch (error) {
-      console.error('Error marking order as delivered:', error);
-      toast.error('Failed to complete delivery');
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error('Failed to mark order as delivered');
+      }
     }
   };
 

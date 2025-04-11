@@ -120,9 +120,48 @@ export const verifyDeliveryCode = async (orderId: string, userId: string) => {
   return data;
 };
 
+// Mark order as in transit
+export const markOrderAsInTransit = async (orderId: string, userId: string) => {
+  const { data, error } = await supabase
+    .from('orders')
+    .update({
+      status: 'in_transit',
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', orderId)
+    .eq('agent_id', userId)
+    .eq('status', 'assigned')
+    .select();
+
+  if (error) {
+    throw new Error('Failed to update order status: ' + error.message);
+  }
+
+  if (!data || data.length === 0) {
+    throw new Error('Order not found or not in correct status');
+  }
+
+  return { data, error: null };
+};
+
 // Mark order as delivered
-export const markOrderAsDelivered = async (orderId: string, userId: string) => {
-  const { error } = await supabase
+export const markOrderAsDelivered = async (orderId: string, userId: string, deliveryCode: string) => {
+  const { data: orderCheck, error: checkError } = await supabase
+    .from('orders')
+    .select('delivery_code')
+    .eq('id', orderId)
+    .eq('agent_id', userId)
+    .single();
+
+  if (checkError) {
+    throw new Error('Failed to verify delivery code');
+  }
+
+  if (orderCheck.delivery_code !== deliveryCode) {
+    throw new Error('Invalid delivery code');
+  }
+
+  const { data, error } = await supabase
     .from('orders')
     .update({
       status: 'delivered',
@@ -130,7 +169,17 @@ export const markOrderAsDelivered = async (orderId: string, userId: string) => {
       updated_at: new Date().toISOString()
     })
     .eq('id', orderId)
-    .eq('agent_id', userId);
-  
-  if (error) throw error;
+    .eq('agent_id', userId)
+    .eq('status', 'in_transit')
+    .select();
+
+  if (error) {
+    throw new Error('Failed to mark order as delivered: ' + error.message);
+  }
+
+  if (!data || data.length === 0) {
+    throw new Error('Order not found or not in correct status');
+  }
+
+  return { data, error: null };
 };
