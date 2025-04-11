@@ -30,6 +30,8 @@ export const useAgentRegistration = () => {
           setUserId(signupData.userId);
           if (signupData.fullName) setFullName(signupData.fullName);
           if (signupData.phoneNumber) setPhoneNumber(signupData.phoneNumber);
+          if (signupData.nationalId) setNationalId(signupData.nationalId);
+          if (signupData.location) setLocation(signupData.location);
         } else {
           // If no stored data, check if user is authenticated
           const { data: { user } } = await supabase.auth.getUser();
@@ -48,7 +50,7 @@ export const useAgentRegistration = () => {
         if (userId) {
           const { data: agent, error: agentError } = await supabase
             .from('agents')
-            .select('id, full_name, phone_number, national_id, location')
+            .select('id, full_name, phone_number, national_id, location, profile_picture')
             .eq('id', userId)
             .maybeSingle();
             
@@ -58,8 +60,8 @@ export const useAgentRegistration = () => {
             return;
           }
           
-          // If agent exists and has a national_id and location, they've completed full registration
-          if (agent?.national_id && agent?.location) {
+          // If agent exists and has a profile_picture, they've completed full registration
+          if (agent?.profile_picture) {
             toast.success('Your profile is already completed');
             navigate('/dashboard');
             return;
@@ -69,6 +71,8 @@ export const useAgentRegistration = () => {
           if (agent) {
             if (agent.full_name) setFullName(agent.full_name);
             if (agent.phone_number) setPhoneNumber(agent.phone_number);
+            if (agent.national_id) setNationalId(agent.national_id);
+            if (agent.location) setLocation(agent.location);
           }
         }
 
@@ -107,8 +111,8 @@ export const useAgentRegistration = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!nationalId || !location || !profilePicture) {
-      toast.error('Please fill in all required fields');
+    if (!profilePicture) {
+      toast.error('Please upload a profile picture');
       return;
     }
     

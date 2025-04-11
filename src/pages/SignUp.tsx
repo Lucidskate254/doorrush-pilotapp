@@ -1,12 +1,15 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import AuthLayout from '@/components/layout/AuthLayout';
 import { supabase } from '@/integrations/supabase/client';
+import { ELDORET_TOWNS } from '@/constants/locations';
 
 const SignUp = () => {
   const navigate = useNavigate();
@@ -15,14 +18,17 @@ const SignUp = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [nationalId, setNationalId] = useState('');
+  const [location, setLocation] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password || !confirmPassword || !fullName || !phoneNumber) {
-      toast.error('Please fill in all fields');
+    // Validate required fields
+    if (!email || !password || !confirmPassword || !fullName || !phoneNumber || !nationalId || !location) {
+      toast.error('Please fill in all required fields');
       return;
     }
     
@@ -49,19 +55,20 @@ const SignUp = () => {
 
       if (error) {
         toast.error(error.message);
-        setIsLoading(false);
         return;
       }
 
       if (!data.user) {
         toast.error('Failed to create account');
-        setIsLoading(false);
         return;
       }
 
       const userId = data.user.id;
-
-      // Create a basic agent record with the required fields
+      
+      // Generate a unique agent code
+      const agentCode = `AG-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+      
+      // Create the agent record with all required fields
       const { error: agentError } = await supabase
         .from('agents')
         .insert({
@@ -70,26 +77,31 @@ const SignUp = () => {
           email: email,
           full_name: fullName,
           phone_number: phoneNumber,
-          national_id: '', // Will be filled during complete registration
-          location: '', // Will be filled during complete registration
-          agent_code: `AG-${Math.random().toString(36).substring(2, 9).toUpperCase()}` // Generate a temporary agent code
+          national_id: nationalId,
+          location: location,
+          profile_picture: null, // Will be updated during complete registration
+          agent_code: agentCode,
+          online_status: false,
+          earnings: 0
         });
       
       if (agentError) {
         console.error('Error creating agent record:', agentError);
-        // Don't log out the user since they've already signed up
-        toast.error('Failed to create agent profile. Please continue to registration.');
+        toast.error('Failed to create agent profile: ' + agentError.message);
+        return;
       }
       
-      // Store this data in sessionStorage to be used in the registration page
+      // Store data in sessionStorage to be used in the registration page
       sessionStorage.setItem('agentSignupData', JSON.stringify({
         userId,
         fullName,
         phoneNumber,
-        email
+        email,
+        nationalId,
+        location
       }));
       
-      toast.success('Account created successfully! Please complete your registration to continue.');
+      toast.success('Account created successfully!');
       navigate('/agent-registration');
     } catch (error: any) {
       console.error('Error signing up:', error);
@@ -101,7 +113,7 @@ const SignUp = () => {
 
   return (
     <AuthLayout 
-      title="Create an account" 
+      title="Create an agent account" 
       subtitle="Enter your details to get started"
     >
       <form onSubmit={handleSignUp} className="space-y-4">
@@ -142,6 +154,35 @@ const SignUp = () => {
             required
             className="h-11"
           />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="nationalId">National ID</Label>
+          <Input
+            id="nationalId"
+            type="text"
+            placeholder="Enter your National ID"
+            value={nationalId}
+            onChange={(e) => setNationalId(e.target.value)}
+            required
+            className="h-11"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="location">Location</Label>
+          <Select value={location} onValueChange={setLocation} required>
+            <SelectTrigger className="h-11">
+              <SelectValue placeholder="Select a location" />
+            </SelectTrigger>
+            <SelectContent>
+              {ELDORET_TOWNS.map((town) => (
+                <SelectItem key={town} value={town}>
+                  {town}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         
         <div className="space-y-2">
