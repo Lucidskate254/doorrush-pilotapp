@@ -1,12 +1,10 @@
+
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { MapPin, Package, QrCode, Truck } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAgentOrders } from '@/hooks/useAgentOrders';
 import { QrScannerDialog } from '@/components/orders/QrScannerDialog';
+import ActiveOrdersList from '@/components/orders/ActiveOrdersList';
+import AvailableOrdersList from '@/components/orders/AvailableOrdersList';
 
 const Orders = () => {
   const { 
@@ -34,21 +32,6 @@ const Orders = () => {
     setSelectedOrderId(null);
   };
 
-  const renderStatusBadge = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return <Badge variant="outline" className="bg-yellow-100 text-yellow-800">Pending</Badge>;
-      case 'assigned':
-        return <Badge variant="outline" className="bg-blue-100 text-blue-800">Assigned</Badge>;
-      case 'in_transit':
-        return <Badge variant="outline" className="bg-purple-100 text-purple-800">In Transit</Badge>;
-      case 'delivered':
-        return <Badge variant="outline" className="bg-green-100 text-green-800">Delivered</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -64,149 +47,23 @@ const Orders = () => {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         ) : (
-          <>
-            {/* Active Orders shown first */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <h2 className="text-xl font-semibold mb-4">Active Orders</h2>
-              {activeOrders.length > 0 ? (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Address</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="w-[150px]">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {activeOrders.map((order) => (
-                        <TableRow key={order.id}>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">{order.customer_name}</div>
-                              <div className="text-sm text-muted-foreground">{order.customer_contact}</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-start gap-2">
-                              <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                              <span>{order.delivery_address}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>{renderStatusBadge(order.status)}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              {order.status.toLowerCase() === 'pending' && (
-                                <Button 
-                                  variant="default" 
-                                  size="sm"
-                                  onClick={() => acceptOrder(order.id)}
-                                  disabled={processingOrderId === order.id}
-                                >
-                                  {processingOrderId === order.id ? 'Accepting...' : 'Accept Order'}
-                                </Button>
-                              )}
-                            
-                              {order.status.toLowerCase() === 'assigned' && (
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => markAsOnTheWay(order.id)}
-                                >
-                                  <Truck className="h-4 w-4 mr-1" />
-                                  Start Delivery
-                                </Button>
-                              )}
-                              
-                              {order.status.toLowerCase() === 'in_transit' && (
-                                <Button 
-                                  variant="secondary" 
-                                  size="sm"
-                                  onClick={() => handleScanQRCode(order.id)}
-                                >
-                                  <QrCode className="h-4 w-4 mr-1" />
-                                  Scan
-                                </Button>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              ) : (
-                <div className="text-center py-10 bg-muted/30 rounded-lg">
-                  <Package className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                  <h3 className="text-lg font-medium">No active orders</h3>
-                  <p className="text-muted-foreground mt-1">You don't have any active orders at the moment</p>
-                </div>
-              )}
-            </motion.div>
+          <div className="space-y-8">
+            {/* Active Orders */}
+            <ActiveOrdersList 
+              orders={activeOrders} 
+              processingOrderId={processingOrderId}
+              onAcceptOrder={acceptOrder}
+              onStartDelivery={markAsOnTheWay}
+              onScanQrCode={handleScanQRCode}
+            />
 
-            {/* Available Orders shown second */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.2 }}
-            >
-              <h2 className="text-xl font-semibold mb-4">Available Orders</h2>
-              {availableOrders.length > 0 ? (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Address</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead className="w-[120px]">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {availableOrders.map((order) => (
-                        <TableRow key={order.id}>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">{order.customer_name}</div>
-                              <div className="text-sm text-muted-foreground">{order.customer_contact}</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-start gap-2">
-                              <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                              <span>{order.delivery_address}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>{order.description}</TableCell>
-                          <TableCell>
-                            <Button 
-                              variant="default" 
-                              size="sm"
-                              onClick={() => acceptOrder(order.id)}
-                              disabled={processingOrderId === order.id}
-                            >
-                              {processingOrderId === order.id ? 'Accepting...' : 'Accept Order'}
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              ) : (
-                <div className="text-center py-10 bg-muted/30 rounded-lg">
-                  <Package className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                  <h3 className="text-lg font-medium">No available orders</h3>
-                  <p className="text-muted-foreground mt-1">There are no available orders in your area</p>
-                </div>
-              )}
-            </motion.div>
-          </>
+            {/* Available Orders */}
+            <AvailableOrdersList 
+              orders={availableOrders} 
+              processingOrderId={processingOrderId}
+              onAcceptOrder={acceptOrder}
+            />
+          </div>
         )}
       </div>
 
