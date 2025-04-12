@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar } from '@/components/ui/avatar';
@@ -7,6 +8,8 @@ import { Tables } from '@/integrations/supabase/types';
 import { Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
+import { useOrderActions } from '@/hooks/useOrderActions';
+import { useAuthCheck } from '@/hooks/useAuthCheck';
 
 type Message = Tables<'messages'>;
 
@@ -14,19 +17,17 @@ interface MessageGroupProps {
   orderId: string;
   messages: Message[];
   orderDetails: Tables<'orders'> | null;
-  agentId: string;
-  onSendMessage: (orderId: string, receiverId: string, message: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const MessageGroup: React.FC<MessageGroupProps> = ({
   orderId,
   messages,
   orderDetails,
-  agentId,
-  onSendMessage,
 }) => {
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
+  const { userId } = useAuthCheck();
+  const { sendMessageToCustomer } = useOrderActions(userId, () => {});
 
   // Get customer ID from order details
   const customerId = orderDetails?.customer_id;
@@ -44,7 +45,7 @@ const MessageGroup: React.FC<MessageGroupProps> = ({
     
     setSending(true);
     try {
-      const result = await onSendMessage(orderId, customerId, newMessage);
+      const result = await sendMessageToCustomer(orderId, customerId, newMessage);
       if (result.success) {
         setNewMessage('');
         toast.success('Message sent');
@@ -82,7 +83,7 @@ const MessageGroup: React.FC<MessageGroupProps> = ({
         <div className="space-y-4">
           {messages.map((message) => {
             // Determine if the message is from the agent or customer
-            const isAgentMessage = message.sender_id === agentId;
+            const isAgentMessage = message.sender_id === userId;
             const senderName = isAgentMessage ? 'Me' : orderDetails?.customer_name || 'Customer';
             
             return (
