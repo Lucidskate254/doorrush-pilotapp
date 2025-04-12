@@ -57,12 +57,28 @@ export const useOrderActions = (userId: string | null, refreshOrders: () => void
       }
       
       if (error) {
+        // Handle case where the error message indicates the order was already accepted
+        if (error.includes('already been accepted')) {
+          toast.error('This order has already been accepted by another agent');
+          // Refresh orders to get the latest state
+          refreshOrders();
+          return { success: false, error: 'Order already accepted' };
+        }
         throw new Error(error);
       }
       
       return { success: false, error: 'Failed to accept order' };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred while accepting the order';
+      
+      // Handle specific error message from backend
+      if (typeof errorMessage === 'string' && errorMessage.includes('already been accepted')) {
+        toast.error('This order has already been accepted by another agent');
+        // Refresh orders to get the latest state
+        refreshOrders();
+        return { success: false, error: 'Order already accepted' };
+      }
+      
       toast.error(errorMessage);
       // Refresh orders to get the latest state
       refreshOrders();

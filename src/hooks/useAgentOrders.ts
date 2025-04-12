@@ -79,6 +79,7 @@ export const useAgentOrders = () => {
     processingOrderId,
     acceptOrder,
     markAsOnTheWay,
-    markAsDelivered
+    markAsDelivered,
+    refreshOrders: fetchOrders // Export the refresh function directly
   };
 };

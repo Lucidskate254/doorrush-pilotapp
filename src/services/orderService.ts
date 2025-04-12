@@ -65,7 +65,7 @@ export const acceptOrderInDb = async (orderId: string, userId: string) => {
   }
 
   if (orderCheck.status !== 'pending' || orderCheck.agent_id !== null) {
-    throw new Error('This order has already been accepted');
+    throw new Error('This order has already been accepted by another agent');
   }
 
   const now = new Date().toISOString();
@@ -86,7 +86,7 @@ export const acceptOrderInDb = async (orderId: string, userId: string) => {
   }
 
   if (!data || data.length === 0) {
-    throw new Error('Order was already accepted by another agent');
+    throw new Error('This order has already been accepted by another agent');
   }
 
   return { data, error: null };
