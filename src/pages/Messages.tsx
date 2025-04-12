@@ -72,8 +72,6 @@ const Messages = () => {
                 orderId={orderId}
                 messages={groupedMessages[orderId].messages}
                 orderDetails={groupedMessages[orderId].orderDetails}
-                agentId={userId || ''}
-                onSendMessage={sendMessage}
               />
             ))}
           </div>

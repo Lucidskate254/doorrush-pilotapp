@@ -1,19 +1,20 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Order } from '@/types/orders';
 import { useOrderActions } from '@/hooks/useOrderActions';
 import { useAuth } from '@/hooks/useAuth';
 import QRScanner from '@/components/QRScanner';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 
 export default function OrderDetails() {
   const [order, setOrder] = useState<Order | null>(null);
   const [isScanning, setIsScanning] = useState(false);
-  const router = useRouter();
+  const navigate = useNavigate();
   const searchParams = useSearchParams();
   const orderId = searchParams.get('id');
   const { user } = useAuth();
@@ -22,7 +23,7 @@ export default function OrderDetails() {
   useEffect(() => {
     if (!orderId) {
       toast.error('No order ID provided');
-      router.push('/dashboard');
+      navigate('/dashboard');
       return;
     }
 
@@ -35,7 +36,7 @@ export default function OrderDetails() {
 
       if (error) {
         toast.error('Failed to fetch order details');
-        router.push('/dashboard');
+        navigate('/dashboard');
         return;
       }
 
@@ -43,7 +44,7 @@ export default function OrderDetails() {
     };
 
     fetchOrder();
-  }, [orderId, router]);
+  }, [orderId, navigate]);
 
   const handleStartDelivery = async () => {
     if (!orderId) return;
@@ -63,7 +64,7 @@ export default function OrderDetails() {
         await markAsDelivered(orderId, scannedCode);
         toast.success('Delivery confirmed!');
         setIsScanning(false);
-        router.push('/dashboard');
+        navigate('/dashboard');
       } catch (error) {
         toast.error('Failed to confirm delivery');
       }
@@ -74,14 +75,14 @@ export default function OrderDetails() {
 
   const handleChatWithCustomer = () => {
     if (!order) return;
-    router.push(`/messages?id=${order.customer_id}`);
+    navigate(`/messages?id=${order.customer_id}`);
   };
 
   if (!order) {
     return (
       <div className="container mx-auto p-4">
         <div className="flex items-center justify-between mb-4">
-          <Link href="/dashboard" className="text-blue-500 hover:underline">
+          <Link to="/dashboard" className="text-blue-500 hover:underline">
             ← Back to Dashboard
           </Link>
         </div>
@@ -93,7 +94,7 @@ export default function OrderDetails() {
   return (
     <div className="container mx-auto p-4">
       <div className="flex items-center justify-between mb-4">
-        <Link href="/dashboard" className="text-blue-500 hover:underline">
+        <Link to="/dashboard" className="text-blue-500 hover:underline">
           ← Back to Dashboard
         </Link>
         <div className="text-sm text-gray-500">
@@ -112,7 +113,7 @@ export default function OrderDetails() {
             {order.customer_contact}
           </a>
         </p>
-        <p className="mb-2"><strong>Delivery Location:</strong> {order.address}</p>
+        <p className="mb-2"><strong>Delivery Location:</strong> {order.delivery_address}</p>
       </div>
 
       <div className="flex flex-col gap-4">
@@ -159,4 +160,4 @@ export default function OrderDetails() {
       )}
     </div>
   );
-} 
+}
