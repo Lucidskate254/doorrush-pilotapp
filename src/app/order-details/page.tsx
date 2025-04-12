@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Order } from '@/types/orders';
@@ -15,7 +15,8 @@ export default function OrderDetails() {
   const [order, setOrder] = useState<Order | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const navigate = useNavigate();
-  const searchParams = useSearchParams();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
   const orderId = searchParams.get('id');
   const { user } = useAuth();
   const { markAsOnTheWay, markAsDelivered } = useOrderActions(user?.id || null, () => {});
@@ -51,6 +52,15 @@ export default function OrderDetails() {
     try {
       await markAsOnTheWay(orderId);
       toast.success('Delivery started!');
+      // Refresh order data
+      const { data } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', orderId)
+        .single();
+      if (data) {
+        setOrder(data);
+      }
     } catch (error) {
       toast.error('Failed to start delivery');
     }

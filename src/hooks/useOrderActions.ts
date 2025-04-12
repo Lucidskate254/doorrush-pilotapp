@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Order, OrderStatus } from '@/types/orders';
@@ -48,7 +49,7 @@ export const useOrderActions = (userId: string | null, refreshOrders: () => void
       const { data, error } = await orderService.acceptOrderInDb(orderId, userId);
       
       if (data) {
-        toast.success('Order assigned successfully!');
+        toast.success('Order assigned successfully! You\'re now responsible for this delivery.');
         refreshOrders();
         // Navigate to OrderDetails page
         navigate(`/order-details?id=${orderId}`);

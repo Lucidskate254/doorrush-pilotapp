@@ -14,6 +14,7 @@ import Messages from "@/pages/Messages";
 import Profile from "@/pages/Profile";
 import Settings from "@/pages/Settings";
 import NotFound from "@/pages/NotFound";
+import OrderDetails from "@/app/order-details/page"; // Add the import
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/messages" element={<Messages />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/order-details" element={<OrderDetails />} />
             
             {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />

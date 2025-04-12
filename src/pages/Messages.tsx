@@ -12,8 +12,7 @@ const Messages = () => {
   const { 
     groupedMessages, 
     loading: loadingMessages, 
-    error,
-    sendMessage
+    error
   } = useAgentMessages(userId);
 
   // Handle loading states
