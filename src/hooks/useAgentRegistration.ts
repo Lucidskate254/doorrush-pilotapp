@@ -52,13 +52,13 @@ export const useAgentRegistration = () => {
           }
         }
         
-        // If we have a userId, check if agent record exists
+        // If we have a userId, check if agent record exists and is complete
         if (userId) {
           try {
             const agent = await getAgentByUserId(userId);
             
-            // If agent exists and has a profile_picture, they've completed full registration
-            if (agent?.profile_picture) {
+            // If agent exists and has a complete profile, redirect to dashboard
+            if (agent?.profile_picture && agent?.national_id && agent?.location) {
               toast.success('Your profile is already completed');
               navigate('/dashboard');
               return;
@@ -105,6 +105,11 @@ export const useAgentRegistration = () => {
     
     if (!profilePicture) {
       toast.error('Please upload a profile picture');
+      return;
+    }
+    
+    if (!nationalId || !location) {
+      toast.error('Please fill in all required fields');
       return;
     }
     

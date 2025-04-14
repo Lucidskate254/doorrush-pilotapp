@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { generateAgentCode, uploadProfilePicture } from '@/utils/agentProfileUtils';
+import { uploadProfilePicture } from '@/utils/agentProfileUtils';
 
 interface AgentData {
   fullName: string;
@@ -52,47 +52,20 @@ export const saveAgentData = async (
       }
     }
 
-    // Check if agent record exists
-    const existingAgent = await getAgentByUserId(userId).catch(() => null);
-    
-    if (existingAgent) {
-      // Update existing agent data
-      const { error: updateError } = await supabase
-        .from('agents')
-        .update({
-          full_name: data.fullName,
-          phone_number: data.phoneNumber,
-          national_id: data.nationalId,
-          location: data.location,
-          profile_picture: profilePictureUrl,
-        })
-        .eq('id', userId);
-        
-      if (updateError) {
-        throw updateError;
-      }
-    } else {
-      // Create new agent record with all required fields
-      const agentCode = generateAgentCode();
+    // Update agent data - the record should already exist from the signup process
+    const { error: updateError } = await supabase
+      .from('agents')
+      .update({
+        full_name: data.fullName,
+        phone_number: data.phoneNumber,
+        national_id: data.nationalId,
+        location: data.location,
+        profile_picture: profilePictureUrl,
+      })
+      .eq('id', userId);
       
-      const { error: insertError } = await supabase
-        .from('agents')
-        .insert({
-          id: userId,
-          user_id: userId,
-          full_name: data.fullName,
-          phone_number: data.phoneNumber,
-          national_id: data.nationalId,
-          location: data.location,
-          profile_picture: profilePictureUrl,
-          agent_code: agentCode,
-          online_status: false,
-          earnings: 0
-        });
-        
-      if (insertError) {
-        throw insertError;
-      }
+    if (updateError) {
+      throw updateError;
     }
   } catch (error) {
     console.error('Error saving agent data:', error);

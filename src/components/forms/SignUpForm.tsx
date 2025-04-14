@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
+import { generateAgentCode } from '@/utils/agentProfileUtils';
 
 const SignUpForm = () => {
   const navigate = useNavigate();
@@ -59,7 +60,28 @@ const SignUpForm = () => {
         return;
       }
 
-      // Store data in sessionStorage to be used in the registration page
+      // Create initial agent record - this now works thanks to our RLS policy
+      const agentCode = generateAgentCode();
+      const { error: agentError } = await supabase
+        .from('agents')
+        .insert({
+          id: data.user.id,
+          user_id: data.user.id,
+          full_name: fullName,
+          phone_number: phoneNumber,
+          agent_code: agentCode,
+          location: '', // Will be filled during full registration
+          national_id: '', // Will be filled during full registration
+          online_status: false,
+          earnings: 0
+        });
+
+      if (agentError) {
+        console.error('Error creating agent record:', agentError);
+        toast.error('Account created but agent profile setup failed. Please complete registration.');
+      }
+
+      // Store minimal data in sessionStorage to be used in the registration page
       sessionStorage.setItem('agentSignupData', JSON.stringify({
         userId: data.user.id,
         email: email,
