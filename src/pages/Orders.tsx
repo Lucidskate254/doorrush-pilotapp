@@ -5,6 +5,7 @@ import { useAgentOrders } from '@/hooks/useAgentOrders';
 import { QrScannerDialog } from '@/components/orders/QrScannerDialog';
 import ActiveOrdersList from '@/components/orders/ActiveOrdersList';
 import AvailableOrdersList from '@/components/orders/AvailableOrdersList';
+import { toast } from 'sonner';
 
 const Orders = () => {
   const { 
@@ -14,10 +15,12 @@ const Orders = () => {
     processingOrderId,
     acceptOrder, 
     markAsOnTheWay, 
-    markAsDelivered 
+    markAsDelivered,
+    refreshOrders
   } = useAgentOrders();
   const [scannerOpen, setScannerOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleScanQRCode = (orderId: string) => {
     setSelectedOrderId(orderId);
@@ -30,6 +33,31 @@ const Orders = () => {
     }
     setScannerOpen(false);
     setSelectedOrderId(null);
+  };
+
+  const handleRefreshOrders = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshOrders();
+      toast.success("Orders refreshed");
+    } catch (error) {
+      console.error("Error refreshing orders:", error);
+      toast.error("Failed to refresh orders");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const handleAcceptOrder = async (orderId: string) => {
+    try {
+      const result = await acceptOrder(orderId);
+      if (!result.success && result.error?.includes('already been accepted')) {
+        toast.error('This order has already been accepted by another agent');
+        handleRefreshOrders();
+      }
+    } catch (error) {
+      console.error("Error accepting order:", error);
+    }
   };
 
   return (
@@ -61,7 +89,9 @@ const Orders = () => {
             <AvailableOrdersList 
               orders={availableOrders} 
               processingOrderId={processingOrderId}
-              onAcceptOrder={acceptOrder}
+              onAcceptOrder={handleAcceptOrder}
+              isRefreshing={isRefreshing}
+              onRefresh={handleRefreshOrders}
             />
           </div>
         )}
