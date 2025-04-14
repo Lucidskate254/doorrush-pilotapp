@@ -14,7 +14,7 @@ import Messages from "@/pages/Messages";
 import Profile from "@/pages/Profile";
 import Settings from "@/pages/Settings";
 import NotFound from "@/pages/NotFound";
-import OrderDetails from "@/app/order-details/page"; // Add the import
+import OrderDetails from "@/app/order-details/page";
 
 const queryClient = new QueryClient();
 
