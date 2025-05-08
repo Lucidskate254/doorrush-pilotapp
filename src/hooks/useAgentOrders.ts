@@ -1,14 +1,11 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuthCheck } from '@/hooks/useAuthCheck';
 import { toast } from 'sonner';
-import { Order } from '@/types/orders';
 import * as orderService from '@/services/orderService';
 import { useOrderActions } from '@/hooks/useOrderActions';
-
-// Change the regular export to an export type for the Order type
-export type { Order } from '@/types/orders';
+import { pb } from '@/integrations/pocketbase/client';
+import { Order } from '@/integrations/pocketbase/client';
 
 export const useAgentOrders = () => {
   const { agentData, userId } = useAuthCheck();
@@ -52,23 +49,13 @@ export const useAgentOrders = () => {
     fetchOrders();
     
     // Set up real-time subscription
-    const channel = supabase
-      .channel('orders-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'orders'
-        },
-        () => {
-          fetchOrders();
-        }
-      )
-      .subscribe();
+    // PocketBase uses a different realtime subscription approach
+    pb.collection('orders').subscribe('*', function(e) {
+      fetchOrders();
+    });
     
     return () => {
-      supabase.removeChannel(channel);
+      pb.collection('orders').unsubscribe();
     };
   }, [userId]);
 
@@ -80,6 +67,6 @@ export const useAgentOrders = () => {
     acceptOrder,
     markAsOnTheWay,
     markAsDelivered,
-    refreshOrders: fetchOrders // Export the refresh function directly
+    refreshOrders: fetchOrders
   };
 };

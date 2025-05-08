@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { pb } from '@/integrations/pocketbase/client';
 import { getAgentByUserId, saveAgentData } from '@/services/agentService';
 
 export const useAgentRegistration = () => {
@@ -33,20 +33,24 @@ export const useAgentRegistration = () => {
           if (signupData.phoneNumber) setPhoneNumber(signupData.phoneNumber);
         } else {
           // If no stored data, check if user is authenticated
-          const { data: { user } } = await supabase.auth.getUser();
-          
-          if (!user) {
+          if (!pb.authStore.isValid) {
             toast.error('Authentication required');
             navigate('/signin');
             return;
           }
           
-          const userId = user.id;
+          const userId = pb.authStore.model?.id;
+          if (!userId) {
+            toast.error('Authentication required');
+            navigate('/signin');
+            return;
+          }
+          
           setUserId(userId);
           
           // Try to get user metadata
-          if (user.user_metadata) {
-            const { full_name, phone_number } = user.user_metadata;
+          if (pb.authStore.model) {
+            const { full_name, phone_number } = pb.authStore.model;
             if (full_name) setFullName(full_name);
             if (phone_number) setPhoneNumber(phone_number);
           }
@@ -116,13 +120,17 @@ export const useAgentRegistration = () => {
     // Get current user ID from auth or stored data
     let userIdForSubmit = userId;
     if (!userIdForSubmit) {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      if (!pb.authStore.isValid) {
         toast.error('Authentication required');
         navigate('/signin');
         return;
       }
-      userIdForSubmit = user.id;
+      userIdForSubmit = pb.authStore.model?.id;
+      if (!userIdForSubmit) {
+        toast.error('Authentication required');
+        navigate('/signin');
+        return;
+      }
     }
     
     setIsLoading(true);

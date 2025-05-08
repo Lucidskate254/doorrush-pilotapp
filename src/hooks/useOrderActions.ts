@@ -1,10 +1,9 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Order, OrderStatus } from '@/types/orders';
 import * as orderService from '@/services/orderService';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { pb } from '@/integrations/pocketbase/client';
 
 export interface OrderActionResult {
   success: boolean;
@@ -38,7 +37,7 @@ export const useOrderActions = (userId: string | null, refreshOrders: () => void
         return { success: false, error: 'Order verification failed' };
       }
       
-      if (orderCheck.status !== 'pending' || orderCheck.agent_id !== null) {
+      if (orderCheck.status !== 'available' || orderCheck.agent_id !== null) {
         toast.error('This order has already been accepted by another agent');
         // Refresh orders to get the latest state
         refreshOrders();
@@ -163,18 +162,12 @@ export const useOrderActions = (userId: string | null, refreshOrders: () => void
     setIsProcessing(true);
 
     try {
-      const { data: messageData, error } = await supabase
-        .from('messages')
-        .insert({
-          order_id: orderId,
-          sender_id: userId,
-          receiver_id: customerId,
-          message_text: message,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
+      const messageData = await pb.collection('messages').create({
+        order_id: orderId,
+        sender_id: userId,
+        receiver_id: customerId,
+        message_text: message,
+      });
 
       return { success: true, data: messageData };
     } catch (error) {

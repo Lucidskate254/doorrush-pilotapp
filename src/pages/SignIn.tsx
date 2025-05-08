@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import AuthLayout from '@/components/layout/AuthLayout';
-import { supabase } from '@/integrations/supabase/client';
+import { signInAgent } from '@/services/authService';
+import { pb } from '@/integrations/pocketbase/client';
 
 const SignIn = () => {
   const navigate = useNavigate();
@@ -27,41 +28,33 @@ const SignIn = () => {
     setIsLoading(true);
     
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { success, data, error } = await signInAgent(email, password);
 
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
-
-      if (!data.user) {
-        toast.error('Login failed');
+      if (!success) {
+        toast.error(error || 'Login failed');
         return;
       }
 
       // Check if the user has completed agent registration
-      const { data: agentData, error: agentError } = await supabase
-        .from('agents')
-        .select('*')
-        .eq('id', data.user.id)
-        .maybeSingle();
+      try {
+        const agentData = await pb.collection('agents').getOne(data.record.id);
         
-      if (agentError) {
-        console.error('Error checking agent status:', agentError);
-      }
-      
-      if (!agentData || !agentData.full_name || agentData.full_name === '') {
-        // User hasn't completed agent registration
+        if (!agentData?.full_name || agentData.full_name === '' || 
+            !agentData?.national_id || agentData.national_id === '' || 
+            !agentData?.location || agentData.location === '') {
+          // User hasn't completed agent registration
+          toast.info('Please complete your agent profile');
+          navigate('/agent-registration');
+          return;
+        }
+        
+        toast.success('Signed in successfully');
+        navigate('/dashboard');
+      } catch (error) {
+        console.error('Error checking agent status:', error);
         toast.info('Please complete your agent profile');
         navigate('/agent-registration');
-        return;
       }
-
-      toast.success('Signed in successfully');
-      navigate('/dashboard');
     } catch (error: any) {
       console.error('Error signing in:', error);
       toast.error('An error occurred during sign in');

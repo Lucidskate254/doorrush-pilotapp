@@ -6,9 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
-import { generateAgentCode } from '@/utils/agentProfileUtils';
+import { signUpAgent } from '@/services/authService';
 
 const SignUpForm = () => {
   const navigate = useNavigate();
@@ -37,53 +36,23 @@ const SignUpForm = () => {
     setIsLoading(true);
     
     try {
-      // Sign up the user with Supabase Auth
-      const { data, error } = await supabase.auth.signUp({
+      // Sign up the user with PocketBase
+      const { success, data, error } = await signUpAgent(
         email,
         password,
-        options: {
-          data: {
-            is_agent: true,
-            full_name: fullName,
-            phone_number: phoneNumber
-          }
-        }
-      });
+        confirmPassword,
+        fullName,
+        phoneNumber
+      );
 
-      if (error) {
-        toast.error(error.message);
+      if (!success) {
+        toast.error(error || 'Failed to create account');
         return;
-      }
-
-      if (!data.user) {
-        toast.error('Failed to create account');
-        return;
-      }
-
-      // Create initial agent record - this now works thanks to our RLS policy
-      const agentCode = generateAgentCode();
-      const { error: agentError } = await supabase
-        .from('agents')
-        .insert({
-          id: data.user.id,
-          user_id: data.user.id,
-          full_name: fullName,
-          phone_number: phoneNumber,
-          agent_code: agentCode,
-          location: '', // Will be filled during full registration
-          national_id: '', // Will be filled during full registration
-          online_status: false,
-          earnings: 0
-        });
-
-      if (agentError) {
-        console.error('Error creating agent record:', agentError);
-        toast.error('Account created but agent profile setup failed. Please complete registration.');
       }
 
       // Store minimal data in sessionStorage to be used in the registration page
       sessionStorage.setItem('agentSignupData', JSON.stringify({
-        userId: data.user.id,
+        userId: data.id,
         email: email,
         fullName: fullName,
         phoneNumber: phoneNumber

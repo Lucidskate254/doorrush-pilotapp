@@ -1,60 +1,54 @@
 
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { Tables } from '@/integrations/supabase/types';
+import { pb } from '@/integrations/pocketbase/client';
 
 export const useAuthCheck = () => {
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [agentData, setAgentData] = useState<Tables<'agents'> | null>(null);
+  const [agentData, setAgentData] = useState<any>(null);
 
   useEffect(() => {
-    // Set up auth state change listener first
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'SIGNED_OUT') {
-          setUserId(null);
-          setAgentData(null);
-          navigate('/signin');
-        } else if (session) {
-          setUserId(session.user.id);
-        }
-      }
-    );
-
     const checkAuthentication = async () => {
       try {
         setIsLoading(true);
         
-        // Get current session
-        const { data } = await supabase.auth.getSession();
-        
-        if (!data.session) {
+        // Check if the user is authenticated
+        if (!pb.authStore.isValid) {
           navigate('/signin');
           return;
         }
         
-        const userId = data.session.user.id;
+        const userId = pb.authStore.model?.id;
+        if (!userId) {
+          navigate('/signin');
+          return;
+        }
+        
         setUserId(userId);
         
-        // Fetch agent data if authenticated
-        const { data: agentData, error } = await supabase
-          .from('agents')
-          .select('*')
-          .eq('id', userId)
-          .maybeSingle();
-          
-        if (error) {
-          console.error('Error fetching agent data:', error);
-        } else if (!agentData || !agentData.full_name || agentData.full_name === '') {
-          // If user is authenticated but has no agent profile or incomplete profile, 
-          // redirect to complete registration
-          navigate('/agent-registration');
-          return;
+        // Check if the authenticated user is an agent
+        if (pb.authStore.model?.collectionName === 'agents') {
+          try {
+            const agentData = await pb.collection('agents').getOne(userId);
+            
+            // If agent has no full name or incomplete profile, redirect to registration
+            if (!agentData.full_name || agentData.full_name === '' || 
+                !agentData.national_id || agentData.national_id === '' || 
+                !agentData.location || agentData.location === '') {
+              navigate('/agent-registration');
+              return;
+            } else {
+              setAgentData(agentData);
+            }
+          } catch (error) {
+            console.error('Error fetching agent data:', error);
+          }
         } else {
-          setAgentData(agentData);
+          // Not an agent, redirect to sign in
+          navigate('/signin');
+          return;
         }
       } catch (error) {
         console.error('Auth check error:', error);
@@ -66,9 +60,15 @@ export const useAuthCheck = () => {
 
     checkAuthentication();
 
-    // Clean up subscription
+    // Listen for auth changes
+    const unsubscribe = pb.authStore.onChange((token, model) => {
+      if (!token) {
+        navigate('/signin');
+      }
+    });
+
     return () => {
-      subscription.unsubscribe();
+      // Cleanup
     };
   }, [navigate]);
 

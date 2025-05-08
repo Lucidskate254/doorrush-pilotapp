@@ -1,32 +1,26 @@
 
-import { supabase } from '@/integrations/supabase/client';
-import { uploadProfilePicture } from '@/utils/agentProfileUtils';
+import { pb } from '@/integrations/pocketbase/client';
+import { toast } from 'sonner';
 
 interface AgentData {
-  fullName: string;
-  phoneNumber: string;
-  nationalId: string;
+  full_name: string;
+  phone_number: string;
+  national_id: string;
   location: string;
-  profilePictureUrl: string;
-  userId: string;
+  profile_picture?: File;
 }
 
 /**
  * Fetches agent data by userId
  */
 export const getAgentByUserId = async (userId: string) => {
-  const { data, error } = await supabase
-    .from('agents')
-    .select('id, full_name, phone_number, national_id, location, profile_picture')
-    .eq('id', userId)
-    .maybeSingle();
-    
-  if (error) {
+  try {
+    const record = await pb.collection('agents').getOne(userId);
+    return record;
+  } catch (error) {
     console.error('Error fetching agent data:', error);
     throw error;
   }
-  
-  return data;
 };
 
 /**
@@ -43,32 +37,43 @@ export const saveAgentData = async (
   }
 ): Promise<void> => {
   try {
+    const formData = new FormData();
+    formData.append('full_name', data.fullName);
+    formData.append('phone_number', data.phoneNumber);
+    formData.append('national_id', data.nationalId);
+    formData.append('location', data.location);
+    
     // Upload profile picture if provided
-    let profilePictureUrl = null;
     if (data.profilePicture) {
-      profilePictureUrl = await uploadProfilePicture(userId, data.profilePicture);
-      if (!profilePictureUrl) {
-        throw new Error('Failed to upload profile picture');
-      }
+      formData.append('profile_picture', data.profilePicture);
     }
 
-    // Update agent data - the record should already exist from the signup process
-    const { error: updateError } = await supabase
-      .from('agents')
-      .update({
-        full_name: data.fullName,
-        phone_number: data.phoneNumber,
-        national_id: data.nationalId,
-        location: data.location,
-        profile_picture: profilePictureUrl,
-      })
-      .eq('id', userId);
-      
-    if (updateError) {
-      throw updateError;
-    }
+    // Update agent data
+    await pb.collection('agents').update(userId, formData);
   } catch (error) {
     console.error('Error saving agent data:', error);
+    throw error;
+  }
+};
+
+/**
+ * Upload profile picture
+ */
+export const uploadProfilePicture = async (userId: string, file: File): Promise<string | null> => {
+  try {
+    const formData = new FormData();
+    formData.append('profile_picture', file);
+
+    const record = await pb.collection('agents').update(userId, formData);
+    
+    // Return the URL to the uploaded file
+    if (record.profile_picture) {
+      return `${pb.baseUrl}/api/files/${record.collectionId}/${record.id}/${record.profile_picture}`;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error uploading profile picture:', error);
     throw error;
   }
 };

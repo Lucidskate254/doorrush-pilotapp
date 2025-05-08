@@ -1,4 +1,6 @@
 
+export type OrderStatus = 'available' | 'assigned' | 'on_transit' | 'delivered';
+
 export type Order = {
   id: string;
   customer_name: string;
@@ -6,15 +8,13 @@ export type Order = {
   customer_id: string;
   delivery_address: string;
   description: string;
-  status: string;
+  status: OrderStatus;
   delivery_code: string;
   agent_id?: string | null;
-  created_at: string;
+  created: string;
   delivered_at?: string | null;
   confirmed_at?: string | null;
   amount?: number | null;
   delivery_fee?: number | null;
   location?: string | null;
 };
-
-export type OrderStatus = 'pending' | 'assigned' | 'in_transit' | 'delivered';
