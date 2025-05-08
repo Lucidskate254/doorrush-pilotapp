@@ -44,34 +44,55 @@ export const saveAgentData = async (
 ): Promise<void> => {
   try {
     const updates = {
+      id: userId,
       full_name: data.fullName,
       phone_number: data.phoneNumber,
       national_id: data.nationalId,
       location: data.location,
     };
 
-    // First update the basic agent data
-    const { error } = await supabase
+    // First check if the agent record exists
+    const { data: existingAgent } = await supabase
       .from('agents')
-      .update(updates)
-      .eq('id', userId);
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
 
+    let operation;
+    if (existingAgent) {
+      // Update existing agent
+      operation = supabase
+        .from('agents')
+        .update(updates)
+        .eq('id', userId);
+    } else {
+      // Insert new agent
+      operation = supabase
+        .from('agents')
+        .insert([updates]);
+    }
+
+    const { error } = await operation;
     if (error) throw error;
 
     // Upload profile picture if provided
     if (data.profilePicture) {
-      const filePath = `profile-pictures/${userId}`;
+      const fileExt = data.profilePicture.name.split('.').pop();
+      const filePath = `profile_pictures/${userId}.${fileExt}`;
+      
+      // Use the public bucket which should already exist in Supabase
       const { error: uploadError } = await supabase.storage
-        .from('agents')
+        .from('public')
         .upload(filePath, data.profilePicture, {
-          upsert: true
+          upsert: true,
+          cacheControl: '3600'
         });
 
       if (uploadError) throw uploadError;
 
       // Get the public URL of the uploaded file
       const { data: urlData } = supabase.storage
-        .from('agents')
+        .from('public')
         .getPublicUrl(filePath);
 
       // Update the agent record with the profile picture URL
@@ -84,9 +105,9 @@ export const saveAgentData = async (
 
       if (updateError) throw updateError;
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error saving agent data:', error);
-    throw error;
+    throw new Error(error.message || 'Failed to save agent data');
   }
 };
 
@@ -95,18 +116,22 @@ export const saveAgentData = async (
  */
 export const uploadProfilePicture = async (userId: string, file: File): Promise<string | null> => {
   try {
-    const filePath = `profile-pictures/${userId}`;
+    const fileExt = file.name.split('.').pop();
+    const filePath = `profile_pictures/${userId}.${fileExt}`;
+    
+    // Use the public bucket which should already exist in Supabase
     const { error: uploadError } = await supabase.storage
-      .from('agents')
+      .from('public')
       .upload(filePath, file, {
-        upsert: true
+        upsert: true,
+        cacheControl: '3600'
       });
 
     if (uploadError) throw uploadError;
 
     // Get the public URL of the uploaded file
     const { data: urlData } = supabase.storage
-      .from('agents')
+      .from('public')
       .getPublicUrl(filePath);
 
     // Update the agent record with the profile picture URL
