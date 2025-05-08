@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { pb } from '@/integrations/pocketbase/client';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useAuth = () => {
   const [user, setUser] = useState<any>(null);
@@ -13,8 +13,13 @@ export const useAuth = () => {
       setLoading(true);
       
       // Check if the user is already logged in
-      if (pb.authStore.isValid) {
-        setUser(pb.authStore.model);
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('Error checking auth session:', error);
+        setUser(null);
+      } else if (session) {
+        setUser(session.user);
       } else {
         setUser(null);
       }
@@ -26,14 +31,23 @@ export const useAuth = () => {
     checkAuth();
 
     // Listen for auth state changes
-    pb.authStore.onChange((token, model) => {
-      setUser(model);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        setUser(session.user);
+      } else {
+        setUser(null);
+      }
       setLoading(false);
     });
+
+    // Cleanup
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
-    pb.authStore.clear();
+    await supabase.auth.signOut();
     navigate('/signin');
   };
 
@@ -41,6 +55,6 @@ export const useAuth = () => {
     user,
     loading,
     signOut,
-    isAuthenticated: pb.authStore.isValid
+    isAuthenticated: !!user
   };
 };

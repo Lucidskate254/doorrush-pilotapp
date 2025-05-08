@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { pb } from '@/integrations/pocketbase/client';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useAuthCheck = () => {
   const navigate = useNavigate();
@@ -14,36 +14,39 @@ export const useAuthCheck = () => {
       try {
         setIsLoading(true);
         
-        // Check if the user is authenticated
-        if (!pb.authStore.isValid) {
+        // Get the current session
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) throw error;
+        
+        if (!session) {
           navigate('/signin');
           return;
         }
         
-        const userId = pb.authStore.model?.id;
-        if (!userId) {
-          navigate('/signin');
-          return;
-        }
-        
+        const userId = session.user.id;
         setUserId(userId);
         
         // Check if the authenticated user is an agent
-        if (pb.authStore.model?.collectionName === 'agents') {
-          try {
-            const agentData = await pb.collection('agents').getOne(userId);
-            
-            // If agent has no full name or incomplete profile, redirect to registration
-            if (!agentData.full_name || agentData.full_name === '' || 
-                !agentData.national_id || agentData.national_id === '' || 
-                !agentData.location || agentData.location === '') {
-              navigate('/agent-registration');
-              return;
-            } else {
-              setAgentData(agentData);
-            }
-          } catch (error) {
-            console.error('Error fetching agent data:', error);
+        const { data: agentData, error: agentError } = await supabase
+          .from('agents')
+          .select('*')
+          .eq('id', userId)
+          .single();
+          
+        if (agentError && agentError.code !== 'PGRST116') { // PGRST116 is "no rows returned" code
+          console.error('Error fetching agent data:', agentError);
+        }
+        
+        if (agentData) {
+          // If agent has no full name or incomplete profile, redirect to registration
+          if (!agentData.full_name || 
+              !agentData.national_id || 
+              !agentData.location) {
+            navigate('/agent-registration');
+            return;
+          } else {
+            setAgentData(agentData);
           }
         } else {
           // Not an agent, redirect to sign in
@@ -61,14 +64,14 @@ export const useAuthCheck = () => {
     checkAuthentication();
 
     // Listen for auth changes
-    const unsubscribe = pb.authStore.onChange((token, model) => {
-      if (!token) {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
         navigate('/signin');
       }
     });
 
     return () => {
-      // Cleanup
+      subscription.unsubscribe();
     };
   }, [navigate]);
 

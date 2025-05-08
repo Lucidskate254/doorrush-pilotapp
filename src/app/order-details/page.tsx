@@ -41,7 +41,26 @@ export default function OrderDetails() {
         return;
       }
 
-      setOrder(data);
+      // Convert from Supabase format to our Order type
+      const orderData: Order = {
+        id: data.id,
+        customer_name: data.customer_name,
+        customer_contact: data.customer_contact,
+        customer_id: data.customer_id,
+        delivery_address: data.delivery_address,
+        description: data.description,
+        status: data.status as Order['status'],
+        delivery_code: data.delivery_code,
+        agent_id: data.agent_id,
+        created: data.created_at,
+        delivered_at: data.delivered_at,
+        confirmed_at: data.updated_at,
+        amount: data.amount,
+        delivery_fee: data.delivery_fee,
+        location: data.location
+      };
+
+      setOrder(orderData);
     };
 
     fetchOrder();
@@ -59,7 +78,25 @@ export default function OrderDetails() {
         .eq('id', orderId)
         .single();
       if (data) {
-        setOrder(data);
+        // Convert from Supabase format to our Order type
+        const orderData: Order = {
+          id: data.id,
+          customer_name: data.customer_name,
+          customer_contact: data.customer_contact,
+          customer_id: data.customer_id,
+          delivery_address: data.delivery_address,
+          description: data.description,
+          status: data.status as Order['status'],
+          delivery_code: data.delivery_code,
+          agent_id: data.agent_id,
+          created: data.created_at,
+          delivered_at: data.delivered_at,
+          confirmed_at: data.updated_at,
+          amount: data.amount,
+          delivery_fee: data.delivery_fee,
+          location: data.location
+        };
+        setOrder(orderData);
       }
     } catch (error) {
       toast.error('Failed to start delivery');
@@ -136,7 +173,7 @@ export default function OrderDetails() {
           </button>
         )}
 
-        {order.status === 'in_transit' && (
+        {order.status === 'on_transit' && (
           <button
             onClick={() => setIsScanning(true)}
             className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"

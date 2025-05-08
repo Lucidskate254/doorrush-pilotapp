@@ -1,5 +1,5 @@
 
-import { pb } from '@/integrations/pocketbase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface AgentData {
@@ -15,8 +15,14 @@ interface AgentData {
  */
 export const getAgentByUserId = async (userId: string) => {
   try {
-    const record = await pb.collection('agents').getOne(userId);
-    return record;
+    const { data, error } = await supabase
+      .from('agents')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (error) throw error;
+    return data;
   } catch (error) {
     console.error('Error fetching agent data:', error);
     throw error;
@@ -37,19 +43,47 @@ export const saveAgentData = async (
   }
 ): Promise<void> => {
   try {
-    const formData = new FormData();
-    formData.append('full_name', data.fullName);
-    formData.append('phone_number', data.phoneNumber);
-    formData.append('national_id', data.nationalId);
-    formData.append('location', data.location);
-    
+    const updates = {
+      full_name: data.fullName,
+      phone_number: data.phoneNumber,
+      national_id: data.nationalId,
+      location: data.location,
+    };
+
+    // First update the basic agent data
+    const { error } = await supabase
+      .from('agents')
+      .update(updates)
+      .eq('id', userId);
+
+    if (error) throw error;
+
     // Upload profile picture if provided
     if (data.profilePicture) {
-      formData.append('profile_picture', data.profilePicture);
-    }
+      const filePath = `profile-pictures/${userId}`;
+      const { error: uploadError } = await supabase.storage
+        .from('agents')
+        .upload(filePath, data.profilePicture, {
+          upsert: true
+        });
 
-    // Update agent data
-    await pb.collection('agents').update(userId, formData);
+      if (uploadError) throw uploadError;
+
+      // Get the public URL of the uploaded file
+      const { data: urlData } = supabase.storage
+        .from('agents')
+        .getPublicUrl(filePath);
+
+      // Update the agent record with the profile picture URL
+      const { error: updateError } = await supabase
+        .from('agents')
+        .update({
+          profile_picture: urlData.publicUrl
+        })
+        .eq('id', userId);
+
+      if (updateError) throw updateError;
+    }
   } catch (error) {
     console.error('Error saving agent data:', error);
     throw error;
@@ -61,17 +95,31 @@ export const saveAgentData = async (
  */
 export const uploadProfilePicture = async (userId: string, file: File): Promise<string | null> => {
   try {
-    const formData = new FormData();
-    formData.append('profile_picture', file);
+    const filePath = `profile-pictures/${userId}`;
+    const { error: uploadError } = await supabase.storage
+      .from('agents')
+      .upload(filePath, file, {
+        upsert: true
+      });
 
-    const record = await pb.collection('agents').update(userId, formData);
-    
-    // Return the URL to the uploaded file
-    if (record.profile_picture) {
-      return `${pb.baseUrl}/api/files/${record.collectionId}/${record.id}/${record.profile_picture}`;
-    }
-    
-    return null;
+    if (uploadError) throw uploadError;
+
+    // Get the public URL of the uploaded file
+    const { data: urlData } = supabase.storage
+      .from('agents')
+      .getPublicUrl(filePath);
+
+    // Update the agent record with the profile picture URL
+    const { error: updateError } = await supabase
+      .from('agents')
+      .update({
+        profile_picture: urlData.publicUrl
+      })
+      .eq('id', userId);
+
+    if (updateError) throw updateError;
+
+    return urlData.publicUrl;
   } catch (error) {
     console.error('Error uploading profile picture:', error);
     throw error;

@@ -1,5 +1,5 @@
 
-import { pb } from '@/integrations/pocketbase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 // Agent authentication
@@ -11,22 +11,50 @@ export const signUpAgent = async (
   phoneNumber: string
 ) => {
   try {
-    const data = {
+    // Check if passwords match
+    if (password !== passwordConfirm) {
+      return { success: false, error: 'Passwords do not match' };
+    }
+
+    // Create the agent account in Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
-      passwordConfirm,
-      full_name: fullName,
-      phone_number: phoneNumber,
-      agent_code: generateAgentCode(),
-      location: '', // Will be filled during full registration
-      national_id: '', // Will be filled during full registration
-      online_status: false,
-      earnings: 0
-    };
-    
-    const record = await pb.collection('agents').create(data);
-    await pb.collection('agents').authWithPassword(email, password);
-    return { success: true, data: record };
+    });
+
+    if (authError) throw authError;
+
+    if (!authData.user) {
+      return { success: false, error: 'Failed to create account' };
+    }
+
+    // Create agent profile in the agents table
+    const { data: agentData, error: profileError } = await supabase
+      .from('agents')
+      .insert({
+        id: authData.user.id,
+        full_name: fullName,
+        phone_number: phoneNumber,
+        agent_code: generateAgentCode(),
+        location: '', // Will be filled during full registration
+        national_id: '', // Will be filled during full registration
+        online_status: false,
+        earnings: 0
+      })
+      .select();
+
+    if (profileError) {
+      console.error('Error creating agent profile:', profileError);
+      // If profile creation fails, we should still return success since the auth account was created
+      // The user will need to complete their profile later
+      return { 
+        success: true, 
+        data: authData.user,
+        warning: 'Account created but profile setup incomplete. Please complete your profile.'
+      };
+    }
+
+    return { success: true, data: authData.user };
   } catch (error: any) {
     console.error('Error signing up agent:', error);
     return { success: false, error: error.message || 'Failed to sign up' };
@@ -35,8 +63,29 @@ export const signUpAgent = async (
 
 export const signInAgent = async (email: string, password: string) => {
   try {
-    const authData = await pb.collection('agents').authWithPassword(email, password);
-    return { success: true, data: authData };
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) throw error;
+
+    // Fetch agent profile to check if they have completed registration
+    const { data: agentData, error: profileError } = await supabase
+      .from('agents')
+      .select('*')
+      .eq('id', data.user.id)
+      .single();
+
+    if (profileError && profileError.code !== 'PGRST116') { // PGRST116 is "no rows returned" code
+      console.error('Error fetching agent profile:', profileError);
+    }
+
+    return { 
+      success: true, 
+      data,
+      profileComplete: !!(agentData && agentData.full_name && agentData.national_id && agentData.location)
+    };
   } catch (error: any) {
     console.error('Error signing in agent:', error);
     return { success: false, error: error.message || 'Failed to sign in' };
@@ -53,18 +102,45 @@ export const signUpCustomer = async (
   address: string
 ) => {
   try {
-    const data = {
+    // Check if passwords match
+    if (password !== passwordConfirm) {
+      return { success: false, error: 'Passwords do not match' };
+    }
+
+    // Create the customer account in Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
-      passwordConfirm,
-      full_name: fullName,
-      phone_number: phoneNumber,
-      address,
-    };
-    
-    const record = await pb.collection('customers').create(data);
-    await pb.collection('customers').authWithPassword(email, password);
-    return { success: true, data: record };
+    });
+
+    if (authError) throw authError;
+
+    if (!authData.user) {
+      return { success: false, error: 'Failed to create account' };
+    }
+
+    // Create customer profile in the customers table
+    const { data: customerData, error: profileError } = await supabase
+      .from('customers')
+      .insert({
+        id: authData.user.id,
+        full_name: fullName,
+        phone_number: phoneNumber,
+        address
+      })
+      .select();
+
+    if (profileError) {
+      console.error('Error creating customer profile:', profileError);
+      // If profile creation fails, we should still return success since the auth account was created
+      return { 
+        success: true, 
+        data: authData.user,
+        warning: 'Account created but profile setup incomplete. Please complete your profile.'
+      };
+    }
+
+    return { success: true, data: authData.user };
   } catch (error: any) {
     console.error('Error signing up customer:', error);
     return { success: false, error: error.message || 'Failed to sign up' };
@@ -73,8 +149,14 @@ export const signUpCustomer = async (
 
 export const signInCustomer = async (email: string, password: string) => {
   try {
-    const authData = await pb.collection('customers').authWithPassword(email, password);
-    return { success: true, data: authData };
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) throw error;
+
+    return { success: true, data };
   } catch (error: any) {
     console.error('Error signing in customer:', error);
     return { success: false, error: error.message || 'Failed to sign in' };
@@ -82,17 +164,15 @@ export const signInCustomer = async (email: string, password: string) => {
 };
 
 // Common authentication functions
-export const signOut = () => {
-  pb.authStore.clear();
+export const signOut = async () => {
+  await supabase.auth.signOut();
 };
 
 export const refreshSession = async () => {
   try {
-    // PocketBase automatically handles token refresh when making authenticated requests
-    if (pb.authStore.isValid) {
-      return { success: true };
-    }
-    return { success: false, error: 'No active session' };
+    const { data, error } = await supabase.auth.refreshSession();
+    if (error) throw error;
+    return { success: true, data };
   } catch (error: any) {
     console.error('Error refreshing session:', error);
     return { success: false, error: error.message || 'Failed to refresh session' };

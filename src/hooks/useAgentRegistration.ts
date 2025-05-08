@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { pb } from '@/integrations/pocketbase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { getAgentByUserId, saveAgentData } from '@/services/agentService';
 
 export const useAgentRegistration = () => {
@@ -33,27 +33,22 @@ export const useAgentRegistration = () => {
           if (signupData.phoneNumber) setPhoneNumber(signupData.phoneNumber);
         } else {
           // If no stored data, check if user is authenticated
-          if (!pb.authStore.isValid) {
+          const { data: { session }, error } = await supabase.auth.getSession();
+          
+          if (error) {
+            console.error('Error getting session:', error);
+            navigate('/signin');
+            return;
+          }
+          
+          if (!session) {
             toast.error('Authentication required');
             navigate('/signin');
             return;
           }
           
-          const userId = pb.authStore.model?.id;
-          if (!userId) {
-            toast.error('Authentication required');
-            navigate('/signin');
-            return;
-          }
-          
+          const userId = session.user.id;
           setUserId(userId);
-          
-          // Try to get user metadata
-          if (pb.authStore.model) {
-            const { full_name, phone_number } = pb.authStore.model;
-            if (full_name) setFullName(full_name);
-            if (phone_number) setPhoneNumber(phone_number);
-          }
         }
         
         // If we have a userId, check if agent record exists and is complete
@@ -74,6 +69,7 @@ export const useAgentRegistration = () => {
               if (agent.phone_number) setPhoneNumber(agent.phone_number);
               if (agent.national_id) setNationalId(agent.national_id);
               if (agent.location) setLocation(agent.location);
+              if (agent.profile_picture) setProfilePreview(agent.profile_picture);
             }
           } catch (error) {
             console.error('Error checking agent record:', error);
@@ -107,7 +103,7 @@ export const useAgentRegistration = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!profilePicture) {
+    if (!profilePicture && !profilePreview) {
       toast.error('Please upload a profile picture');
       return;
     }
@@ -120,17 +116,15 @@ export const useAgentRegistration = () => {
     // Get current user ID from auth or stored data
     let userIdForSubmit = userId;
     if (!userIdForSubmit) {
-      if (!pb.authStore.isValid) {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error || !session) {
         toast.error('Authentication required');
         navigate('/signin');
         return;
       }
-      userIdForSubmit = pb.authStore.model?.id;
-      if (!userIdForSubmit) {
-        toast.error('Authentication required');
-        navigate('/signin');
-        return;
-      }
+      
+      userIdForSubmit = session.user.id;
     }
     
     setIsLoading(true);

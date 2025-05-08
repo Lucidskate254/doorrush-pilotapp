@@ -1,9 +1,8 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import * as orderService from '@/services/orderService';
 import { useNavigate } from 'react-router-dom';
-import { pb } from '@/integrations/pocketbase/client';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface OrderActionResult {
   success: boolean;
@@ -15,6 +14,25 @@ export const useOrderActions = (userId: string | null, refreshOrders: () => void
   const [processingOrderId, setProcessingOrderId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const navigate = useNavigate();
+
+  // Check if order is still available
+  const checkOrderAvailability = async (orderId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('status, agent_id')
+        .eq('id', orderId)
+        .single();
+
+      if (error) throw error;
+      
+      return data;
+    } catch (error) {
+      console.error('Error checking order status:', error);
+      toast.error('Failed to check order status');
+      return null;
+    }
+  };
 
   // Accept an order
   const acceptOrder = async (orderId: string): Promise<OrderActionResult> => {
@@ -30,7 +48,7 @@ export const useOrderActions = (userId: string | null, refreshOrders: () => void
       console.log('Accepting order:', orderId, 'by agent:', userId);
       
       // First check if the order is still available
-      const orderCheck = await orderService.checkOrderAvailability(orderId);
+      const orderCheck = await checkOrderAvailability(orderId);
       
       if (!orderCheck) {
         toast.error('Unable to verify order availability');
@@ -45,39 +63,32 @@ export const useOrderActions = (userId: string | null, refreshOrders: () => void
       }
       
       // Proceed with updating the order
-      const { data, error } = await orderService.acceptOrderInDb(orderId, userId);
+      const now = new Date().toISOString();
+      const { data, error } = await supabase
+        .from('orders')
+        .update({
+          agent_id: userId,
+          status: 'assigned',
+          updated_at: now
+        })
+        .eq('id', orderId)
+        .select();
       
-      if (data) {
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      if (data && data.length > 0) {
         toast.success('Order assigned successfully! You\'re now responsible for this delivery.');
         refreshOrders();
         // Navigate to OrderDetails page
         navigate(`/order-details?id=${orderId}`);
-        return { success: true, data };
-      }
-      
-      if (error) {
-        // Handle case where the error message indicates the order was already accepted
-        if (error.includes('already been accepted')) {
-          toast.error('This order has already been accepted by another agent');
-          // Refresh orders to get the latest state
-          refreshOrders();
-          return { success: false, error: 'Order already accepted' };
-        }
-        throw new Error(error);
+        return { success: true, data: data[0] };
       }
       
       return { success: false, error: 'Failed to accept order' };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred while accepting the order';
-      
-      // Handle specific error message from backend
-      if (typeof errorMessage === 'string' && errorMessage.includes('already been accepted')) {
-        toast.error('This order has already been accepted by another agent');
-        // Refresh orders to get the latest state
-        refreshOrders();
-        return { success: false, error: 'Order already accepted' };
-      }
-      
       toast.error(errorMessage);
       // Refresh orders to get the latest state
       refreshOrders();
@@ -98,16 +109,23 @@ export const useOrderActions = (userId: string | null, refreshOrders: () => void
     setIsProcessing(true);
 
     try {
-      const { data, error } = await orderService.markOrderAsInTransit(orderId, userId);
-      
-      if (data) {
-        toast.success('Order status updated to in transit');
-        refreshOrders();
-        return { success: true, data };
-      }
+      const { data, error } = await supabase
+        .from('orders')
+        .update({
+          status: 'on_transit',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId)
+        .select();
       
       if (error) {
-        throw new Error(error);
+        throw new Error(error.message);
+      }
+      
+      if (data && data.length > 0) {
+        toast.success('Order status updated to in transit');
+        refreshOrders();
+        return { success: true, data: data[0] };
       }
       
       return { success: false, error: 'Failed to update order status' };
@@ -130,16 +148,47 @@ export const useOrderActions = (userId: string | null, refreshOrders: () => void
     setIsProcessing(true);
 
     try {
-      const { data, error } = await orderService.markOrderAsDelivered(orderId, userId, deliveryCode);
+      // First check if the delivery code is correct
+      const { data: orderCheck, error: checkError } = await supabase
+        .from('orders')
+        .select('delivery_code, status')
+        .eq('id', orderId)
+        .single();
       
-      if (data) {
-        toast.success('Order marked as delivered');
-        refreshOrders();
-        return { success: true, data };
+      if (checkError) throw new Error(checkError.message);
+      
+      if (!orderCheck) {
+        throw new Error('Order not found');
+      }
+
+      if (orderCheck.delivery_code !== deliveryCode) {
+        throw new Error('Invalid delivery code');
+      }
+
+      if (orderCheck.status !== 'on_transit') {
+        throw new Error('Order must be in transit before marking as delivered');
       }
       
+      // Proceed with updating the order
+      const now = new Date().toISOString();
+      const { data, error } = await supabase
+        .from('orders')
+        .update({
+          status: 'delivered',
+          delivered_at: now,
+          updated_at: now
+        })
+        .eq('id', orderId)
+        .select();
+      
       if (error) {
-        throw new Error(error);
+        throw new Error(error.message);
+      }
+      
+      if (data && data.length > 0) {
+        toast.success('Order marked as delivered');
+        refreshOrders();
+        return { success: true, data: data[0] };
       }
       
       return { success: false, error: 'Failed to mark order as delivered' };
@@ -162,14 +211,20 @@ export const useOrderActions = (userId: string | null, refreshOrders: () => void
     setIsProcessing(true);
 
     try {
-      const messageData = await pb.collection('messages').create({
-        order_id: orderId,
-        sender_id: userId,
-        receiver_id: customerId,
-        message_text: message,
-      });
+      const { data, error } = await supabase
+        .from('messages')
+        .insert({
+          order_id: orderId,
+          sender_id: userId,
+          receiver_id: customerId,
+          message_text: message,
+          created_at: new Date().toISOString()
+        })
+        .select();
 
-      return { success: true, data: messageData };
+      if (error) throw new Error(error.message);
+
+      return { success: true, data: data ? data[0] : null };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to send message';
       console.error('Error sending message:', error);

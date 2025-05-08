@@ -1,15 +1,19 @@
 
-import { pb } from '@/integrations/pocketbase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 // Fetch active orders (assigned to this agent and not delivered)
 export const fetchAgentActiveOrders = async (userId: string) => {
   try {
-    const records = await pb.collection('orders').getList(1, 50, {
-      filter: `agent_id = "${userId}" && status != "delivered"`,
-      sort: '-created'
-    });
-    return records.items;
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('agent_id', userId)
+      .neq('status', 'delivered')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data;
   } catch (error) {
     console.error('Error fetching active orders:', error);
     throw error;
@@ -19,11 +23,15 @@ export const fetchAgentActiveOrders = async (userId: string) => {
 // Fetch available orders (pending and not assigned to any agent)
 export const fetchAvailableOrders = async () => {
   try {
-    const records = await pb.collection('orders').getList(1, 50, {
-      filter: 'status = "available" && agent_id = null',
-      sort: '-created'
-    });
-    return records.items;
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('status', 'available')
+      .is('agent_id', null)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data;
   } catch (error) {
     console.error('Error fetching available orders:', error);
     throw error;
@@ -33,11 +41,14 @@ export const fetchAvailableOrders = async () => {
 // Check if order is still available
 export const checkOrderAvailability = async (orderId: string) => {
   try {
-    const record = await pb.collection('orders').getOne(orderId);
-    return {
-      status: record.status,
-      agent_id: record.agent_id
-    };
+    const { data, error } = await supabase
+      .from('orders')
+      .select('status, agent_id')
+      .eq('id', orderId)
+      .single();
+
+    if (error) throw error;
+    return data;
   } catch (error) {
     console.error('Error checking order status:', error);
     toast.error('Failed to check order status');
@@ -49,7 +60,13 @@ export const checkOrderAvailability = async (orderId: string) => {
 export const acceptOrderInDb = async (orderId: string, userId: string) => {
   try {
     // First check if the order is available
-    const orderCheck = await pb.collection('orders').getOne(orderId);
+    const { data: orderCheck, error: checkError } = await supabase
+      .from('orders')
+      .select('status, agent_id')
+      .eq('id', orderId)
+      .single();
+
+    if (checkError) throw checkError;
 
     if (!orderCheck) {
       throw new Error('Order not found');
@@ -60,13 +77,19 @@ export const acceptOrderInDb = async (orderId: string, userId: string) => {
     }
 
     const now = new Date().toISOString();
-    const data = await pb.collection('orders').update(orderId, {
-      agent_id: userId,
-      status: 'assigned',
-      confirmed_at: now
-    });
+    const { data, error } = await supabase
+      .from('orders')
+      .update({
+        agent_id: userId,
+        status: 'assigned',
+        updated_at: now
+      })
+      .eq('id', orderId)
+      .select();
 
-    return { data, error: null };
+    if (error) throw error;
+
+    return { data: data?.[0], error: null };
   } catch (error: any) {
     throw new Error('Failed to accept order: ' + error.message);
   }
@@ -75,10 +98,15 @@ export const acceptOrderInDb = async (orderId: string, userId: string) => {
 // Mark order as on the way
 export const markOrderAsOnTheWay = async (orderId: string, userId: string) => {
   try {
-    await pb.collection('orders').update(orderId, {
-      status: 'on_transit',
-      updated: new Date().toISOString()
-    });
+    const { error } = await supabase
+      .from('orders')
+      .update({
+        status: 'on_transit',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', orderId);
+
+    if (error) throw error;
   } catch (error) {
     throw error;
   }
@@ -87,8 +115,14 @@ export const markOrderAsOnTheWay = async (orderId: string, userId: string) => {
 // Verify delivery code for an order
 export const verifyDeliveryCode = async (orderId: string, userId: string) => {
   try {
-    const record = await pb.collection('orders').getOne(orderId);
-    return { delivery_code: record.delivery_code };
+    const { data, error } = await supabase
+      .from('orders')
+      .select('delivery_code')
+      .eq('id', orderId)
+      .single();
+
+    if (error) throw error;
+    return { delivery_code: data.delivery_code };
   } catch (error) {
     throw error;
   }
@@ -97,12 +131,18 @@ export const verifyDeliveryCode = async (orderId: string, userId: string) => {
 // Mark order as in transit
 export const markOrderAsInTransit = async (orderId: string, userId: string) => {
   try {
-    const data = await pb.collection('orders').update(orderId, {
-      status: 'on_transit',
-      updated: new Date().toISOString()
-    });
+    const { data, error } = await supabase
+      .from('orders')
+      .update({
+        status: 'on_transit',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', orderId)
+      .select();
 
-    return { data, error: null };
+    if (error) throw error;
+
+    return { data: data?.[0], error: null };
   } catch (error: any) {
     throw new Error('Failed to update order status: ' + error.message);
   }
@@ -112,7 +152,13 @@ export const markOrderAsInTransit = async (orderId: string, userId: string) => {
 export const markOrderAsDelivered = async (orderId: string, userId: string, deliveryCode: string) => {
   try {
     // Check delivery code
-    const orderCheck = await pb.collection('orders').getOne(orderId);
+    const { data: orderCheck, error: checkError } = await supabase
+      .from('orders')
+      .select('delivery_code, status')
+      .eq('id', orderId)
+      .single();
+
+    if (checkError) throw checkError;
 
     if (!orderCheck) {
       throw new Error('Order not found');
@@ -126,13 +172,20 @@ export const markOrderAsDelivered = async (orderId: string, userId: string, deli
       throw new Error('Order must be in transit before marking as delivered');
     }
 
-    const data = await pb.collection('orders').update(orderId, {
-      status: 'delivered',
-      delivered_at: new Date().toISOString(),
-      updated: new Date().toISOString()
-    });
+    const now = new Date().toISOString();
+    const { data, error } = await supabase
+      .from('orders')
+      .update({
+        status: 'delivered',
+        delivered_at: now,
+        updated_at: now
+      })
+      .eq('id', orderId)
+      .select();
 
-    return { data, error: null };
+    if (error) throw error;
+
+    return { data: data?.[0], error: null };
   } catch (error: any) {
     throw new Error('Failed to mark order as delivered: ' + error.message);
   }

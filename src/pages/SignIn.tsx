@@ -8,7 +8,6 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import AuthLayout from '@/components/layout/AuthLayout';
 import { signInAgent } from '@/services/authService';
-import { pb } from '@/integrations/pocketbase/client';
 
 const SignIn = () => {
   const navigate = useNavigate();
@@ -28,7 +27,7 @@ const SignIn = () => {
     setIsLoading(true);
     
     try {
-      const { success, data, error } = await signInAgent(email, password);
+      const { success, data, error, profileComplete } = await signInAgent(email, password);
 
       if (!success) {
         toast.error(error || 'Login failed');
@@ -36,25 +35,15 @@ const SignIn = () => {
       }
 
       // Check if the user has completed agent registration
-      try {
-        const agentData = await pb.collection('agents').getOne(data.record.id);
-        
-        if (!agentData?.full_name || agentData.full_name === '' || 
-            !agentData?.national_id || agentData.national_id === '' || 
-            !agentData?.location || agentData.location === '') {
-          // User hasn't completed agent registration
-          toast.info('Please complete your agent profile');
-          navigate('/agent-registration');
-          return;
-        }
-        
-        toast.success('Signed in successfully');
-        navigate('/dashboard');
-      } catch (error) {
-        console.error('Error checking agent status:', error);
+      if (!profileComplete) {
+        // User hasn't completed agent registration
         toast.info('Please complete your agent profile');
         navigate('/agent-registration');
+        return;
       }
+      
+      toast.success('Signed in successfully');
+      navigate('/dashboard');
     } catch (error: any) {
       console.error('Error signing in:', error);
       toast.error('An error occurred during sign in');
