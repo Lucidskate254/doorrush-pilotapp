@@ -69,7 +69,7 @@ export const saveAgentData = async (
       // Insert new agent
       operation = supabase
         .from('agents')
-        .insert([updates]);
+        .insert(updates);
     }
 
     const { error } = await operation;
@@ -80,9 +80,9 @@ export const saveAgentData = async (
       const fileExt = data.profilePicture.name.split('.').pop();
       const filePath = `profile_pictures/${userId}.${fileExt}`;
       
-      // Use the public bucket which should already exist in Supabase
+      // Use the agents bucket which exists in Supabase
       const { error: uploadError } = await supabase.storage
-        .from('public')
+        .from('agents')
         .upload(filePath, data.profilePicture, {
           upsert: true,
           cacheControl: '3600'
@@ -92,7 +92,7 @@ export const saveAgentData = async (
 
       // Get the public URL of the uploaded file
       const { data: urlData } = supabase.storage
-        .from('public')
+        .from('agents')
         .getPublicUrl(filePath);
 
       // Update the agent record with the profile picture URL
@@ -119,9 +119,9 @@ export const uploadProfilePicture = async (userId: string, file: File): Promise<
     const fileExt = file.name.split('.').pop();
     const filePath = `profile_pictures/${userId}.${fileExt}`;
     
-    // Use the public bucket which should already exist in Supabase
+    // Use the agents bucket which exists in Supabase
     const { error: uploadError } = await supabase.storage
-      .from('public')
+      .from('agents')
       .upload(filePath, file, {
         upsert: true,
         cacheControl: '3600'
@@ -131,7 +131,7 @@ export const uploadProfilePicture = async (userId: string, file: File): Promise<
 
     // Get the public URL of the uploaded file
     const { data: urlData } = supabase.storage
-      .from('public')
+      .from('agents')
       .getPublicUrl(filePath);
 
     // Update the agent record with the profile picture URL

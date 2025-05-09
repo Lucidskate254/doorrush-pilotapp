@@ -13,9 +13,9 @@ export const uploadProfilePicture = async (
     const fileExt = profilePicture.name.split('.').pop();
     const filePath = `profile_pictures/${userId}.${fileExt}`;
     
-    // Use the public bucket which should already exist in Supabase
+    // Use the agents bucket which exists in Supabase
     const { error: uploadError } = await supabase.storage
-      .from('public')
+      .from('agents')
       .upload(filePath, profilePicture, {
         upsert: true,
         cacheControl: '3600'
@@ -27,7 +27,7 @@ export const uploadProfilePicture = async (
     
     // Get public URL for the uploaded image
     const { data: urlData } = supabase.storage
-      .from('public')
+      .from('agents')
       .getPublicUrl(filePath);
 
     return urlData.publicUrl;
