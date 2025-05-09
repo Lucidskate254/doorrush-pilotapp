@@ -10,6 +10,9 @@ import { toast } from 'sonner';
 import { useAuthCheck } from '@/hooks/useAuthCheck';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Link } from 'react-router-dom';
+import './ripple-button.css';
 
 const Dashboard = () => {
   const { agentData, isLoading } = useAuthCheck();
@@ -70,20 +73,40 @@ const Dashboard = () => {
             </p>
           </div>
           
-          <Card className="w-full md:w-auto">
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="online-mode"
-                  checked={isOnline}
-                  onCheckedChange={handleOnlineStatusChange}
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            {/* Profile picture with circular animation */}
+            <Link to="/profile" className="relative group">
+              <div className="absolute inset-0 bg-primary rounded-full opacity-20 group-hover:opacity-30 transition-opacity animate-pulse"></div>
+              <div className="absolute -inset-1 rounded-full bg-primary opacity-0 group-hover:opacity-20 animate-ping"></div>
+              <Avatar className="h-10 w-10 border-2 border-primary">
+                <AvatarImage 
+                  src={agentData?.profile_picture || ''} 
+                  alt={agentData?.full_name || 'Agent profile'} 
                 />
-                <Label htmlFor="online-mode" className="font-medium">
-                  {isOnline ? 'Online' : 'Offline'}
-                </Label>
-              </div>
-            </CardContent>
-          </Card>
+                <AvatarFallback>
+                  {(agentData?.full_name || 'A').charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+            </Link>
+            
+            <Card className="w-full md:w-auto">
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-2">
+                  <div className="ripple-button-container">
+                    <Switch
+                      id="online-mode"
+                      checked={isOnline}
+                      onCheckedChange={handleOnlineStatusChange}
+                      className="ripple-button"
+                    />
+                  </div>
+                  <Label htmlFor="online-mode" className="font-medium">
+                    {isOnline ? 'Online' : 'Offline'}
+                  </Label>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
         
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
