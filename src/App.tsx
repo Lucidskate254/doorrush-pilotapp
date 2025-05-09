@@ -15,6 +15,9 @@ import Profile from "@/pages/Profile";
 import Settings from "@/pages/Settings";
 import NotFound from "@/pages/NotFound";
 import OrderDetails from "@/app/order-details/page";
+import HelpCenter from "@/pages/HelpCenter";
+import AgentGuidelines from "@/pages/AgentGuidelines";
+import DeliveryFAQs from "@/pages/DeliveryFAQs";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +42,11 @@ const App = () => (
             <Route path="/profile" element={<Profile />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/order-details" element={<OrderDetails />} />
+            
+            {/* Support Routes */}
+            <Route path="/help-center" element={<HelpCenter />} />
+            <Route path="/agent-guidelines" element={<AgentGuidelines />} />
+            <Route path="/delivery-faqs" element={<DeliveryFAQs />} />
             
             {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />

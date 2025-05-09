@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Phone, Mail, MapPin, Home } from 'lucide-react';
+import { Phone, Mail, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Footer = () => {
@@ -48,19 +48,19 @@ const Footer = () => {
             <h4 className="font-semibold mb-4">Resources</h4>
             <ul className="space-y-2">
               <li>
-                <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                <Link to="/help-center" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                   Help Center
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                <Link to="/agent-guidelines" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                   Agent Guidelines
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                <Link to="/delivery-faqs" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                   Delivery FAQs
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
@@ -76,6 +76,14 @@ const Footer = () => {
                 >
                   <Phone size={16} className="mr-2" />
                   +254 758 301 710
+                </a>
+              </li>
+              <li>
+                <a 
+                  href="tel:+254780028064" 
+                  className="flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Phone size={16} className="mr-2" />
                   +254 780 028 064
                 </a>
               </li>
@@ -86,6 +94,14 @@ const Footer = () => {
                 >
                   <Mail size={16} className="mr-2" />
                   ryanemunyasa@gmail.com
+                </a>
+              </li>
+              <li>
+                <a 
+                  href="mailto:ryanmawhite72@gmail.com" 
+                  className="flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Mail size={16} className="mr-2" />
                   ryanmawhite72@gmail.com
                 </a>
               </li>
