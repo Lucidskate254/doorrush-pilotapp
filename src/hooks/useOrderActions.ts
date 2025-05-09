@@ -81,8 +81,10 @@ export const useOrderActions = (userId: string | null, refreshOrders: () => void
       if (data && data.length > 0) {
         toast.success('Order assigned successfully! You\'re now responsible for this delivery.');
         refreshOrders();
-        // Navigate to OrderDetails page
-        navigate(`/order-details?id=${orderId}`);
+        
+        // Navigate to the delivery progress page
+        navigate(`/delivery-progress/${orderId}`);
+        
         return { success: true, data: data[0] };
       }
       
@@ -188,6 +190,10 @@ export const useOrderActions = (userId: string | null, refreshOrders: () => void
       if (data && data.length > 0) {
         toast.success('Order marked as delivered');
         refreshOrders();
+        
+        // Navigate to the confirmation page
+        navigate('/delivery-success');
+        
         return { success: true, data: data[0] };
       }
       
