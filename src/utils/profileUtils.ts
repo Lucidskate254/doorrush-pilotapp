@@ -43,7 +43,7 @@ export const updateProfileData = async (
       const filePath = `${agentId}/${Date.now()}.${fileExt}`;
       
       const { error: uploadError } = await supabase.storage
-        .from('agent_profiles')
+        .from('agents')  // Use the agents bucket which exists
         .upload(filePath, profilePicture);
         
       if (uploadError) {
@@ -51,7 +51,7 @@ export const updateProfileData = async (
       }
       
       const { data: urlData } = supabase.storage
-        .from('agent_profiles')
+        .from('agents')  // Use the agents bucket which exists
         .getPublicUrl(filePath);
         
       profilePictureUrl = urlData.publicUrl;

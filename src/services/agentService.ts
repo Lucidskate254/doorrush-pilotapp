@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { generateAgentCode } from '@/utils/agentProfileUtils';
 
 interface AgentData {
   full_name: string;
@@ -43,12 +44,16 @@ export const saveAgentData = async (
   }
 ): Promise<void> => {
   try {
+    // Generate a unique agent code for new agents
+    const agentCode = generateAgentCode();
+    
     const updates = {
       id: userId,
       full_name: data.fullName,
       phone_number: data.phoneNumber,
       national_id: data.nationalId,
       location: data.location,
+      agent_code: agentCode, // Adding the agent_code field
     };
 
     // First check if the agent record exists
@@ -60,16 +65,21 @@ export const saveAgentData = async (
 
     let operation;
     if (existingAgent) {
-      // Update existing agent
+      // Update existing agent (don't overwrite agent_code if it exists)
       operation = supabase
         .from('agents')
-        .update(updates)
+        .update({
+          full_name: data.fullName,
+          phone_number: data.phoneNumber,
+          national_id: data.nationalId,
+          location: data.location,
+        })
         .eq('id', userId);
     } else {
       // Insert new agent
       operation = supabase
         .from('agents')
-        .insert(updates);
+        .insert([updates]);
     }
 
     const { error } = await operation;
@@ -80,30 +90,36 @@ export const saveAgentData = async (
       const fileExt = data.profilePicture.name.split('.').pop();
       const filePath = `profile_pictures/${userId}.${fileExt}`;
       
-      // Use the agents bucket which exists in Supabase
-      const { error: uploadError } = await supabase.storage
-        .from('agents')
-        .upload(filePath, data.profilePicture, {
-          upsert: true,
-          cacheControl: '3600'
-        });
+      try {
+        // Use the agents bucket which exists in Supabase
+        const { error: uploadError } = await supabase.storage
+          .from('agents')
+          .upload(filePath, data.profilePicture, {
+            upsert: true,
+            cacheControl: '3600'
+          });
 
-      if (uploadError) throw uploadError;
+        if (uploadError) throw uploadError;
 
-      // Get the public URL of the uploaded file
-      const { data: urlData } = supabase.storage
-        .from('agents')
-        .getPublicUrl(filePath);
+        // Get the public URL of the uploaded file
+        const { data: urlData } = supabase.storage
+          .from('agents')
+          .getPublicUrl(filePath);
 
-      // Update the agent record with the profile picture URL
-      const { error: updateError } = await supabase
-        .from('agents')
-        .update({
-          profile_picture: urlData.publicUrl
-        })
-        .eq('id', userId);
+        // Update the agent record with the profile picture URL
+        const { error: updateError } = await supabase
+          .from('agents')
+          .update({
+            profile_picture: urlData.publicUrl
+          })
+          .eq('id', userId);
 
-      if (updateError) throw updateError;
+        if (updateError) throw updateError;
+      } catch (uploadError: any) {
+        console.error('Error uploading profile picture:', uploadError);
+        // Continue with registration even if image upload fails, just log the error
+        toast.error('Failed to upload profile picture, but registration was completed.');
+      }
     }
   } catch (error: any) {
     console.error('Error saving agent data:', error);
