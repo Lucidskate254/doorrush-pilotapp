@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Phone, MapPin, Package, QrCode } from 'lucide-react';
 import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { ORDER_STATUS } from '@/constants/orderStatus';
 
 const DeliveryProgress = () => {
   const { orderId } = useParams<{ orderId: string }>();
@@ -80,7 +81,7 @@ const DeliveryProgress = () => {
           if (order) {
             setOrder({
               ...order,
-              status: 'on_transit'
+              status: ORDER_STATUS.ON_TRANSIT
             });
           }
           toast.success('Delivery started successfully');
@@ -185,15 +186,7 @@ const DeliveryProgress = () => {
         </Card>
         
         <div className="flex flex-col gap-4">
-          {order.status === 'assigned' ? (
-            <Button 
-              className="w-full" 
-              onClick={handleStartDelivery}
-              disabled={isProcessing}
-            >
-              {isProcessing ? 'Starting...' : 'Start Delivery'}
-            </Button>
-          ) : (
+          {order && order.status === ORDER_STATUS.ON_TRANSIT ? (
             <Button 
               className="w-full" 
               onClick={() => setScannerOpen(true)}
@@ -201,6 +194,14 @@ const DeliveryProgress = () => {
             >
               <QrCode className="mr-2 h-4 w-4" />
               Scan QR Code to Complete Delivery
+            </Button>
+          ) : (
+            <Button 
+              className="w-full" 
+              onClick={handleStartDelivery}
+              disabled={isProcessing}
+            >
+              {isProcessing ? 'Starting...' : 'Start Delivery'}
             </Button>
           )}
         </div>

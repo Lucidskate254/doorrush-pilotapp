@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { useOrderActions } from '@/hooks/useOrderActions';
 import { supabase } from '@/integrations/supabase/client';
 import { Order } from '@/types/orders';
+import { ORDER_STATUS } from '@/constants/orderStatus';
 
 export const useAgentOrders = () => {
   const { agentData, userId } = useAuthCheck();
@@ -24,7 +25,7 @@ export const useAgentOrders = () => {
         .from('orders')
         .select('*')
         .eq('agent_id', userId)
-        .neq('status', 'delivered')
+        .neq('status', ORDER_STATUS.DELIVERED)
         .order('created_at', { ascending: false });
 
       if (activeError) throw activeError;
@@ -54,7 +55,7 @@ export const useAgentOrders = () => {
       const { data: availableOrdersData, error: availableError } = await supabase
         .from('orders')
         .select('*')
-        .eq('status', 'Pending')
+        .eq('status', ORDER_STATUS.PENDING)
         .is('agent_id', null)
         .order('created_at', { ascending: false });
 

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { ORDER_STATUS } from '@/constants/orderStatus';
 
 export interface OrderActionResult {
   success: boolean;
@@ -55,8 +56,8 @@ export const useOrderActions = (userId: string | null, refreshOrders: () => void
         return { success: false, error: 'Order verification failed' };
       }
       
-      // UPDATED: Changed from 'available' to 'Pending' to match database
-      if (orderCheck.status !== 'Pending' || 
+      // UPDATED: Using constants for order status
+      if (orderCheck.status !== ORDER_STATUS.PENDING || 
          (orderCheck.agent_id !== null && orderCheck.agent_id !== userId)) {
         toast.error('This order has already been accepted by another agent');
         // Refresh orders to get the latest state
@@ -71,13 +72,13 @@ export const useOrderActions = (userId: string | null, refreshOrders: () => void
         return { success: true };
       }
       
-      // Proceed with updating the order
+      // Proceed with updating the order - Changed to directly set to in_transit
       const now = new Date().toISOString();
       const { data, error } = await supabase
         .from('orders')
         .update({
           agent_id: userId,
-          status: 'assigned',
+          status: ORDER_STATUS.ON_TRANSIT, // Changed from 'assigned' to 'in_transit'
           updated_at: now
         })
         .eq('id', orderId)
@@ -88,7 +89,7 @@ export const useOrderActions = (userId: string | null, refreshOrders: () => void
       }
       
       if (data && data.length > 0) {
-        toast.success('Order assigned successfully! You\'re now responsible for this delivery.');
+        toast.success('Order accepted successfully! You\'re now responsible for this delivery.');
         refreshOrders();
         
         // Navigate to the delivery progress page
@@ -176,7 +177,7 @@ export const useOrderActions = (userId: string | null, refreshOrders: () => void
         throw new Error('Invalid delivery code');
       }
 
-      if (orderCheck.status !== 'on_transit') {
+      if (orderCheck.status !== ORDER_STATUS.ON_TRANSIT) {
         throw new Error('Order must be in transit before marking as delivered');
       }
       
@@ -185,7 +186,7 @@ export const useOrderActions = (userId: string | null, refreshOrders: () => void
       const { data, error } = await supabase
         .from('orders')
         .update({
-          status: 'delivered',
+          status: ORDER_STATUS.DELIVERED,
           delivered_at: now,
           updated_at: now
         })

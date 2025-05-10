@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { ORDER_STATUS } from '@/constants/orderStatus';
 
 // Fetch active orders (assigned to this agent and not delivered)
 export const fetchAgentActiveOrders = async (userId: string) => {
@@ -9,7 +10,7 @@ export const fetchAgentActiveOrders = async (userId: string) => {
       .from('orders')
       .select('*')
       .eq('agent_id', userId)
-      .neq('status', 'delivered')
+      .neq('status', ORDER_STATUS.DELIVERED)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -26,7 +27,7 @@ export const fetchAvailableOrders = async () => {
     const { data, error } = await supabase
       .from('orders')
       .select('*')
-      .eq('status', 'Pending')
+      .eq('status', ORDER_STATUS.PENDING)
       .is('agent_id', null)
       .order('created_at', { ascending: false });
 
@@ -72,8 +73,8 @@ export const acceptOrderInDb = async (orderId: string, userId: string) => {
       throw new Error('Order not found');
     }
 
-    // Updated from 'available' to 'Pending'
-    if (orderCheck.status !== 'Pending' || orderCheck.agent_id !== null) {
+    // Updated to use constants
+    if (orderCheck.status !== ORDER_STATUS.PENDING || orderCheck.agent_id !== null) {
       throw new Error('This order has already been accepted by another agent');
     }
 
@@ -82,7 +83,7 @@ export const acceptOrderInDb = async (orderId: string, userId: string) => {
       .from('orders')
       .update({
         agent_id: userId,
-        status: 'assigned',
+        status: ORDER_STATUS.ON_TRANSIT,  // Changed from 'assigned' to 'in_transit'
         updated_at: now
       })
       .eq('id', orderId)
@@ -102,7 +103,7 @@ export const markOrderAsOnTheWay = async (orderId: string, userId: string) => {
     const { error } = await supabase
       .from('orders')
       .update({
-        status: 'on_transit',
+        status: ORDER_STATUS.ON_TRANSIT,
         updated_at: new Date().toISOString()
       })
       .eq('id', orderId);
@@ -135,7 +136,7 @@ export const markOrderAsInTransit = async (orderId: string, userId: string) => {
     const { data, error } = await supabase
       .from('orders')
       .update({
-        status: 'on_transit',
+        status: ORDER_STATUS.ON_TRANSIT,
         updated_at: new Date().toISOString()
       })
       .eq('id', orderId)
@@ -169,7 +170,7 @@ export const markOrderAsDelivered = async (orderId: string, userId: string, deli
       throw new Error('Invalid delivery code');
     }
 
-    if (orderCheck.status !== 'on_transit') {
+    if (orderCheck.status !== ORDER_STATUS.ON_TRANSIT) {
       throw new Error('Order must be in transit before marking as delivered');
     }
 
@@ -177,7 +178,7 @@ export const markOrderAsDelivered = async (orderId: string, userId: string, deli
     const { data, error } = await supabase
       .from('orders')
       .update({
-        status: 'delivered',
+        status: ORDER_STATUS.DELIVERED,
         delivered_at: now,
         updated_at: now
       })
