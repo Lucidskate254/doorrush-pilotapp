@@ -55,8 +55,8 @@ export const useOrderActions = (userId: string | null, refreshOrders: () => void
         return { success: false, error: 'Order verification failed' };
       }
       
-      // UPDATED: Improved check for order already being claimed or assigned to another agent
-      if (orderCheck.status !== 'available' || 
+      // UPDATED: Changed from 'available' to 'Pending' to match database
+      if (orderCheck.status !== 'Pending' || 
          (orderCheck.agent_id !== null && orderCheck.agent_id !== userId)) {
         toast.error('This order has already been accepted by another agent');
         // Refresh orders to get the latest state

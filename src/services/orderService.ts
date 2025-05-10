@@ -26,7 +26,7 @@ export const fetchAvailableOrders = async () => {
     const { data, error } = await supabase
       .from('orders')
       .select('*')
-      .eq('status', 'available')
+      .eq('status', 'Pending')
       .is('agent_id', null)
       .order('created_at', { ascending: false });
 
@@ -72,7 +72,8 @@ export const acceptOrderInDb = async (orderId: string, userId: string) => {
       throw new Error('Order not found');
     }
 
-    if (orderCheck.status !== 'available' || orderCheck.agent_id !== null) {
+    // Updated from 'available' to 'Pending'
+    if (orderCheck.status !== 'Pending' || orderCheck.agent_id !== null) {
       throw new Error('This order has already been accepted by another agent');
     }
 

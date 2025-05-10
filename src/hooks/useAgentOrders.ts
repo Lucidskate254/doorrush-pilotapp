@@ -50,11 +50,11 @@ export const useAgentOrders = () => {
       
       setActiveOrders(activeOrdersConverted);
       
-      // Fetch available orders (pending and not assigned to any agent)
+      // Updated: Fetch available orders (Pending and not assigned to any agent)
       const { data: availableOrdersData, error: availableError } = await supabase
         .from('orders')
         .select('*')
-        .eq('status', 'available')
+        .eq('status', 'Pending')
         .is('agent_id', null)
         .order('created_at', { ascending: false });
 
