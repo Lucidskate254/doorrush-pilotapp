@@ -1,5 +1,5 @@
 
-export type OrderStatus = 'Pending' | 'assigned' | 'in_transit' | 'delivered';
+export type OrderStatus = 'Pending' | 'in_transit' | 'delivered';
 
 export type Order = {
   id: string;

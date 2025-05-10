@@ -3,8 +3,10 @@ import React from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MapPin, QrCode, Truck } from 'lucide-react';
+import { MapPin, QrCode, Truck, Eye } from 'lucide-react';
 import { Order } from '@/types/orders';
+import { useNavigate } from 'react-router-dom';
+import { ORDER_STATUS } from '@/constants/orderStatus';
 
 interface OrderItemProps {
   order: Order;
@@ -23,19 +25,23 @@ const OrderItem: React.FC<OrderItemProps> = ({
   onScanQrCode,
   showDescription = false,
 }) => {
+  const navigate = useNavigate();
+
   const renderStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'pending':
+      case ORDER_STATUS.PENDING.toLowerCase():
         return <Badge variant="outline" className="bg-yellow-100 text-yellow-800">Pending</Badge>;
-      case 'assigned':
-        return <Badge variant="outline" className="bg-blue-100 text-blue-800">Assigned</Badge>;
-      case 'in_transit':
+      case ORDER_STATUS.ON_TRANSIT.toLowerCase():
         return <Badge variant="outline" className="bg-purple-100 text-purple-800">In Transit</Badge>;
-      case 'delivered':
+      case ORDER_STATUS.DELIVERED.toLowerCase():
         return <Badge variant="outline" className="bg-green-100 text-green-800">Delivered</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
+  };
+
+  const handleViewOrder = (orderId: string) => {
+    navigate(`/delivery-progress/${orderId}`);
   };
 
   return (
@@ -63,7 +69,7 @@ const OrderItem: React.FC<OrderItemProps> = ({
       
       <TableCell>
         <div className="flex items-center gap-2">
-          {order.status.toLowerCase() === 'pending' && (
+          {order.status === ORDER_STATUS.PENDING && (
             <Button 
               variant="default" 
               size="sm"
@@ -74,26 +80,39 @@ const OrderItem: React.FC<OrderItemProps> = ({
             </Button>
           )}
         
-          {order.status.toLowerCase() === 'assigned' && onStartDelivery && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => onStartDelivery(order.id)}
-            >
-              <Truck className="h-4 w-4 mr-1" />
-              Start Delivery
-            </Button>
-          )}
-          
-          {order.status.toLowerCase() === 'in_transit' && onScanQrCode && (
-            <Button 
-              variant="secondary" 
-              size="sm"
-              onClick={() => onScanQrCode(order.id)}
-            >
-              <QrCode className="h-4 w-4 mr-1" />
-              Scan
-            </Button>
+          {order.status === ORDER_STATUS.ON_TRANSIT && (
+            <>
+              {onStartDelivery && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => onStartDelivery(order.id)}
+                >
+                  <Truck className="h-4 w-4 mr-1" />
+                  Start Delivery
+                </Button>
+              )}
+              
+              {onScanQrCode && (
+                <Button 
+                  variant="secondary" 
+                  size="sm"
+                  onClick={() => onScanQrCode(order.id)}
+                >
+                  <QrCode className="h-4 w-4 mr-1" />
+                  Scan
+                </Button>
+              )}
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleViewOrder(order.id)}
+              >
+                <Eye className="h-4 w-4 mr-1" />
+                View
+              </Button>
+            </>
           )}
         </div>
       </TableCell>

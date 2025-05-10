@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -10,6 +9,7 @@ import { useOrderActions } from '@/hooks/useOrderActions';
 import { useAuth } from '@/hooks/useAuth';
 import QRScanner from '@/components/QRScanner';
 import { Link } from 'react-router-dom';
+import { ORDER_STATUS } from '@/constants/orderStatus';
 
 export default function OrderDetails() {
   const [order, setOrder] = useState<Order | null>(null);
@@ -164,16 +164,7 @@ export default function OrderDetails() {
       </div>
 
       <div className="flex flex-col gap-4">
-        {order.status === 'assigned' && (
-          <button
-            onClick={handleStartDelivery}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-          >
-            Start Delivery
-          </button>
-        )}
-
-        {order.status === 'on_transit' && (
+        {order.status === ORDER_STATUS.ON_TRANSIT && (
           <button
             onClick={() => setIsScanning(true)}
             className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"

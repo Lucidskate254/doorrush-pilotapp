@@ -7,12 +7,11 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthCheck } from '@/hooks/useAuthCheck';
 import { useOrderActions } from '@/hooks/useOrderActions';
-import { Order, OrderStatus } from '@/types/orders';
+import { Order } from '@/types/orders';
 import { QrScannerDialog } from '@/components/orders/QrScannerDialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Phone, MapPin, Package, QrCode } from 'lucide-react';
-import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { ORDER_STATUS } from '@/constants/orderStatus';
 
 const DeliveryProgress = () => {
@@ -95,7 +94,17 @@ const DeliveryProgress = () => {
     markAsDelivered(orderId, deliveryCode)
       .then((result) => {
         if (result.success) {
-          // Will automatically navigate to success page
+          // Update the local state to reflect the change
+          if (order) {
+            setOrder({
+              ...order,
+              status: ORDER_STATUS.DELIVERED
+            });
+          }
+          // Navigate to success page after brief delay
+          setTimeout(() => {
+            navigate('/delivery-success');
+          }, 1000);
         }
       });
     
@@ -143,18 +152,19 @@ const DeliveryProgress = () => {
                 <div className="space-y-3">
                   <div className="flex items-start gap-2">
                     <span className="text-muted-foreground">Name:</span>
-                    <span className="font-medium">{order.customer_name}</span>
+                    <span className="font-medium">{order?.customer_name}</span>
                   </div>
                   <div className="flex items-start gap-2">
                     <span className="text-muted-foreground">Contact:</span>
-                    <span className="font-medium">{order.customer_contact}</span>
+                    <span className="font-medium">{order?.customer_contact}</span>
                   </div>
                   <div className="flex items-start gap-2">
                     <Phone className="h-4 w-4 text-muted-foreground mt-0.5" />
                     <Button variant="outline" size="sm" onClick={() => {
-                      // Copy customer contact to clipboard
-                      navigator.clipboard.writeText(order.customer_contact);
-                      toast.success('Phone number copied to clipboard');
+                      if (order) {
+                        navigator.clipboard.writeText(order.customer_contact);
+                        toast.success('Phone number copied to clipboard');
+                      }
                     }}>
                       Call Customer
                     </Button>
@@ -167,16 +177,16 @@ const DeliveryProgress = () => {
                 <div className="space-y-3">
                   <div className="flex items-start gap-2">
                     <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                    <span>{order.delivery_address}</span>
+                    <span>{order?.delivery_address}</span>
                   </div>
                   <div className="flex items-start gap-2">
                     <Package className="h-4 w-4 text-muted-foreground mt-0.5" />
-                    <span>{order.description}</span>
+                    <span>{order?.description}</span>
                   </div>
                   <div className="flex items-start gap-2">
                     <span className="text-muted-foreground">Status:</span>
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      {order.status === 'assigned' ? 'Ready for delivery' : 'In transit'}
+                      {order?.status === ORDER_STATUS.ON_TRANSIT ? 'In transit' : 'Ready for delivery'}
                     </span>
                   </div>
                 </div>
@@ -204,6 +214,13 @@ const DeliveryProgress = () => {
               {isProcessing ? 'Starting...' : 'Start Delivery'}
             </Button>
           )}
+          
+          <Button
+            variant="outline"
+            onClick={() => navigate('/orders')}
+          >
+            Back to Orders
+          </Button>
         </div>
       </div>
       
