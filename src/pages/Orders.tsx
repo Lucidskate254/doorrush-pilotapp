@@ -48,13 +48,10 @@ const Orders = () => {
     }
   };
 
+  // We'll directly use acceptOrder here - the function now handles all necessary checks
   const handleAcceptOrder = async (orderId: string) => {
     try {
-      const result = await acceptOrder(orderId);
-      if (!result.success && result.error?.includes('already been accepted')) {
-        toast.error('This order has already been accepted by another agent');
-        handleRefreshOrders();
-      }
+      await acceptOrder(orderId);
     } catch (error) {
       console.error("Error accepting order:", error);
     }

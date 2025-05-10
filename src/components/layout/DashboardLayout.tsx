@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -8,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import Footer from './Footer';
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 interface NavItemProps {
   href: string;
@@ -109,7 +109,14 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
               </SheetTrigger>
               <SheetContent side="left" className="p-0 w-[250px]">
                 <div className="flex flex-col h-full">
-                  <div className="p-4 border-b">
+                  <div className="p-4 border-b flex items-center gap-3">
+                    <div className="w-8 h-8">
+                      <img 
+                        src="/lovable-uploads/61a09d61-0ee5-449c-8deb-7bcd1972e920.png" 
+                        alt="DoorRush Logo" 
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
                     <h2 className="text-lg font-semibold">DoorRush Pilot</h2>
                     <button 
                       onClick={closeMobileMenu}
@@ -173,7 +180,14 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       <div className="flex flex-1">
         {/* Sidebar for Desktop */}
         <aside className="hidden md:flex flex-col w-64 border-r border-border bg-card">
-          <div className="p-6">
+          <div className="p-6 flex items-center gap-3">
+            <div className="w-10 h-10 flex-shrink-0">
+              <img 
+                src="/lovable-uploads/61a09d61-0ee5-449c-8deb-7bcd1972e920.png" 
+                alt="DoorRush Logo" 
+                className="w-full h-full object-contain"
+              />
+            </div>
             <h1 className="text-xl font-semibold">DoorRush Pilot</h1>
           </div>
           

@@ -55,11 +55,20 @@ export const useOrderActions = (userId: string | null, refreshOrders: () => void
         return { success: false, error: 'Order verification failed' };
       }
       
-      if (orderCheck.status !== 'available' || orderCheck.agent_id !== null) {
+      // UPDATED: Improved check for order already being claimed or assigned to another agent
+      if (orderCheck.status !== 'available' || 
+         (orderCheck.agent_id !== null && orderCheck.agent_id !== userId)) {
         toast.error('This order has already been accepted by another agent');
         // Refresh orders to get the latest state
         refreshOrders();
         return { success: false, error: 'Order already accepted' };
+      }
+      
+      // If it's already assigned to the current agent, no need to reassign
+      if (orderCheck.agent_id === userId) {
+        toast.info('You have already accepted this order');
+        navigate(`/delivery-progress/${orderId}`);
+        return { success: true };
       }
       
       // Proceed with updating the order
